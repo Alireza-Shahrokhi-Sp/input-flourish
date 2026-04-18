@@ -41,6 +41,7 @@ type Story = {
   format: string;
   body: string;
   summary: string | null;
+  parent_story_id: string | null;
 };
 type Annotations = { tokens: Token[]; grammar: GrammarEntry[] };
 
@@ -52,6 +53,7 @@ function StoryPage() {
   const [ann, setAnn] = React.useState<Annotations | null>(null);
   const [savedLemmas, setSavedLemmas] = React.useState<Set<string>>(new Set());
   const [playing, setPlaying] = React.useState(false);
+  const [continuing, setContinuing] = React.useState(false);
 
   React.useEffect(() => {
     if (!loading && !user) nav({ to: "/auth" });
@@ -243,9 +245,33 @@ function StoryPage() {
           </section>
         )}
 
-        <div className="mt-12 flex justify-between">
+        <div className="mt-12 flex flex-wrap gap-3 justify-between">
           <Link to="/library"><Button variant="ghost">← Biblioteca</Button></Link>
-          <Link to="/generate"><Button>Un'altra storia →</Button></Link>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              disabled={continuing}
+              onClick={async () => {
+                setContinuing(true);
+                try {
+                  const { data, error } = await supabase.functions.invoke("continue-story", {
+                    body: { previous_story_id: id },
+                  });
+                  if (error) throw error;
+                  if (!data?.story_id) throw new Error("Errore");
+                  toast.success("Capitolo pronto!");
+                  nav({ to: "/story/$id", params: { id: data.story_id } });
+                } catch (e) {
+                  toast.error(e instanceof Error ? e.message : "Errore");
+                } finally {
+                  setContinuing(false);
+                }
+              }}
+            >
+              {continuing ? "Generando…" : "Continua il capitolo →"}
+            </Button>
+            <Link to="/generate"><Button>Un'altra storia →</Button></Link>
+          </div>
         </div>
       </main>
     </div>

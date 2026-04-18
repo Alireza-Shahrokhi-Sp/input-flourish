@@ -1,4 +1,7 @@
 project_id = "bkmbqljkpydojbyormbr"
 
 [functions.generate-story]
-verify_jwt = true
+verify_jwt = false
+
+[functions.continue-story]
+verify_jwt = false

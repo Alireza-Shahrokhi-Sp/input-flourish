@@ -99,6 +99,7 @@ export type Database = {
           id: string
           level: Database["public"]["Enums"]["cefr_level"]
           mode: Database["public"]["Enums"]["story_mode"]
+          parent_story_id: string | null
           stretch_level: Database["public"]["Enums"]["cefr_level"] | null
           summary: string | null
           title: string
@@ -114,6 +115,7 @@ export type Database = {
           id?: string
           level: Database["public"]["Enums"]["cefr_level"]
           mode?: Database["public"]["Enums"]["story_mode"]
+          parent_story_id?: string | null
           stretch_level?: Database["public"]["Enums"]["cefr_level"] | null
           summary?: string | null
           title: string
@@ -129,6 +131,7 @@ export type Database = {
           id?: string
           level?: Database["public"]["Enums"]["cefr_level"]
           mode?: Database["public"]["Enums"]["story_mode"]
+          parent_story_id?: string | null
           stretch_level?: Database["public"]["Enums"]["cefr_level"] | null
           summary?: string | null
           title?: string
@@ -137,7 +140,15 @@ export type Database = {
           user_id?: string
           word_count?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "stories_parent_story_id_fkey"
+            columns: ["parent_story_id"]
+            isOneToOne: false
+            referencedRelation: "stories"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       story_annotations: {
         Row: {
