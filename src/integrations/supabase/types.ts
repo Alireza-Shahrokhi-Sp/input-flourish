@@ -14,16 +14,249 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      profiles: {
+        Row: {
+          created_at: string
+          default_level: Database["public"]["Enums"]["cefr_level"]
+          default_stretch: boolean
+          display_name: string | null
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          default_level?: Database["public"]["Enums"]["cefr_level"]
+          default_stretch?: boolean
+          display_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          default_level?: Database["public"]["Enums"]["cefr_level"]
+          default_stretch?: boolean
+          display_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      srs_reviews: {
+        Row: {
+          created_at: string
+          due_at: string
+          ease: number
+          id: string
+          interval_days: number
+          lapses: number
+          last_reviewed_at: string | null
+          reps: number
+          user_id: string
+          vocab_id: string
+        }
+        Insert: {
+          created_at?: string
+          due_at?: string
+          ease?: number
+          id?: string
+          interval_days?: number
+          lapses?: number
+          last_reviewed_at?: string | null
+          reps?: number
+          user_id: string
+          vocab_id: string
+        }
+        Update: {
+          created_at?: string
+          due_at?: string
+          ease?: number
+          id?: string
+          interval_days?: number
+          lapses?: number
+          last_reviewed_at?: string | null
+          reps?: number
+          user_id?: string
+          vocab_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "srs_reviews_vocab_id_fkey"
+            columns: ["vocab_id"]
+            isOneToOne: true
+            referencedRelation: "vocab_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stories: {
+        Row: {
+          body: string
+          created_at: string
+          format: Database["public"]["Enums"]["story_format"]
+          id: string
+          level: Database["public"]["Enums"]["cefr_level"]
+          mode: Database["public"]["Enums"]["story_mode"]
+          stretch_level: Database["public"]["Enums"]["cefr_level"] | null
+          summary: string | null
+          title: string
+          topic: string | null
+          updated_at: string
+          user_id: string
+          word_count: number | null
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          format?: Database["public"]["Enums"]["story_format"]
+          id?: string
+          level: Database["public"]["Enums"]["cefr_level"]
+          mode?: Database["public"]["Enums"]["story_mode"]
+          stretch_level?: Database["public"]["Enums"]["cefr_level"] | null
+          summary?: string | null
+          title: string
+          topic?: string | null
+          updated_at?: string
+          user_id: string
+          word_count?: number | null
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          format?: Database["public"]["Enums"]["story_format"]
+          id?: string
+          level?: Database["public"]["Enums"]["cefr_level"]
+          mode?: Database["public"]["Enums"]["story_mode"]
+          stretch_level?: Database["public"]["Enums"]["cefr_level"] | null
+          summary?: string | null
+          title?: string
+          topic?: string | null
+          updated_at?: string
+          user_id?: string
+          word_count?: number | null
+        }
+        Relationships: []
+      }
+      story_annotations: {
+        Row: {
+          created_at: string
+          grammar: Json
+          id: string
+          story_id: string
+          tokens: Json
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          grammar?: Json
+          id?: string
+          story_id: string
+          tokens?: Json
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          grammar?: Json
+          id?: string
+          story_id?: string
+          tokens?: Json
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "story_annotations_story_id_fkey"
+            columns: ["story_id"]
+            isOneToOne: true
+            referencedRelation: "stories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      vocab_items: {
+        Row: {
+          created_at: string
+          first_seen_sentence: string | null
+          first_story_id: string | null
+          id: string
+          lemma: string
+          notes: string | null
+          pos: string | null
+          translation: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          first_seen_sentence?: string | null
+          first_story_id?: string | null
+          id?: string
+          lemma: string
+          notes?: string | null
+          pos?: string | null
+          translation?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          first_seen_sentence?: string | null
+          first_story_id?: string | null
+          id?: string
+          lemma?: string
+          notes?: string | null
+          pos?: string | null
+          translation?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vocab_items_first_story_id_fkey"
+            columns: ["first_story_id"]
+            isOneToOne: false
+            referencedRelation: "stories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "user"
+      cefr_level: "A1" | "A2" | "B1" | "B2" | "C1" | "C2"
+      story_format: "news" | "short_story" | "novel_chapter" | "dialogue"
+      story_mode: "standard" | "stretch"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +383,11 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "user"],
+      cefr_level: ["A1", "A2", "B1", "B2", "C1", "C2"],
+      story_format: ["news", "short_story", "novel_chapter", "dialogue"],
+      story_mode: ["standard", "stretch"],
+    },
   },
 } as const
