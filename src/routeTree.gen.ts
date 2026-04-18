@@ -9,12 +9,30 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as VocabRouteImport } from './routes/vocab'
+import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as ReviewRouteImport } from './routes/review'
 import { Route as LibraryRouteImport } from './routes/library'
 import { Route as GenerateRouteImport } from './routes/generate'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as StoryIdRouteImport } from './routes/story.$id'
 
+const VocabRoute = VocabRouteImport.update({
+  id: '/vocab',
+  path: '/vocab',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReviewRoute = ReviewRouteImport.update({
+  id: '/review',
+  path: '/review',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LibraryRoute = LibraryRouteImport.update({
   id: '/library',
   path: '/library',
@@ -46,6 +64,9 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/generate': typeof GenerateRoute
   '/library': typeof LibraryRoute
+  '/review': typeof ReviewRoute
+  '/settings': typeof SettingsRoute
+  '/vocab': typeof VocabRoute
   '/story/$id': typeof StoryIdRoute
 }
 export interface FileRoutesByTo {
@@ -53,6 +74,9 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/generate': typeof GenerateRoute
   '/library': typeof LibraryRoute
+  '/review': typeof ReviewRoute
+  '/settings': typeof SettingsRoute
+  '/vocab': typeof VocabRoute
   '/story/$id': typeof StoryIdRoute
 }
 export interface FileRoutesById {
@@ -61,14 +85,42 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/generate': typeof GenerateRoute
   '/library': typeof LibraryRoute
+  '/review': typeof ReviewRoute
+  '/settings': typeof SettingsRoute
+  '/vocab': typeof VocabRoute
   '/story/$id': typeof StoryIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/generate' | '/library' | '/story/$id'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/generate'
+    | '/library'
+    | '/review'
+    | '/settings'
+    | '/vocab'
+    | '/story/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/generate' | '/library' | '/story/$id'
-  id: '__root__' | '/' | '/auth' | '/generate' | '/library' | '/story/$id'
+  to:
+    | '/'
+    | '/auth'
+    | '/generate'
+    | '/library'
+    | '/review'
+    | '/settings'
+    | '/vocab'
+    | '/story/$id'
+  id:
+    | '__root__'
+    | '/'
+    | '/auth'
+    | '/generate'
+    | '/library'
+    | '/review'
+    | '/settings'
+    | '/vocab'
+    | '/story/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -76,11 +128,35 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   GenerateRoute: typeof GenerateRoute
   LibraryRoute: typeof LibraryRoute
+  ReviewRoute: typeof ReviewRoute
+  SettingsRoute: typeof SettingsRoute
+  VocabRoute: typeof VocabRoute
   StoryIdRoute: typeof StoryIdRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/vocab': {
+      id: '/vocab'
+      path: '/vocab'
+      fullPath: '/vocab'
+      preLoaderRoute: typeof VocabRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/review': {
+      id: '/review'
+      path: '/review'
+      fullPath: '/review'
+      preLoaderRoute: typeof ReviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/library': {
       id: '/library'
       path: '/library'
@@ -124,6 +200,9 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   GenerateRoute: GenerateRoute,
   LibraryRoute: LibraryRoute,
+  ReviewRoute: ReviewRoute,
+  SettingsRoute: SettingsRoute,
+  VocabRoute: VocabRoute,
   StoryIdRoute: StoryIdRoute,
 }
 export const routeTree = rootRouteImport
