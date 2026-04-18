@@ -189,6 +189,14 @@ function StoryPage() {
                         {t.note && (
                           <p className="text-xs text-muted-foreground italic">{t.note}</p>
                         )}
+                        <a
+                          href={`https://www.wordreference.com/iten/${encodeURIComponent((t.lemma ?? t.surface).toLowerCase())}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs underline text-terracotta hover:opacity-80"
+                        >
+                          Definizione & coniugazione su WordReference ↗
+                        </a>
                         {g && (
                           <div className={`mt-2 rounded-md p-2 text-xs ${g.is_stretch ? "bg-stretch/10 border border-stretch/30" : "bg-muted"}`}>
                             <p className="font-semibold">{g.name}</p>
