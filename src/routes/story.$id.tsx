@@ -41,6 +41,7 @@ type Story = {
   format: string;
   body: string;
   summary: string | null;
+  parent_story_id: string | null;
 };
 type Annotations = { tokens: Token[]; grammar: GrammarEntry[] };
 
