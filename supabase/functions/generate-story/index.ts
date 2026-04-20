@@ -113,26 +113,15 @@ ISTRUZIONI GRAMMATICA
 - "is_stretch": true SOLO per gli elementi sopra livello che hai introdotto.
 - "token_indices" punta ai token in cui la struttura si manifesta nel body.`;
 
-    const resp = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: sys }] },
-          contents: [{ role: "user", parts: [{ text: user_prompt }] }],
-          generationConfig: {
-            temperature: 0.9,
-            responseMimeType: "application/json",
-          },
-        }),
-      },
-    );
+    const resp = await callGeminiWithRetry(apiKey, sys, user_prompt);
 
     if (!resp.ok) {
       const txt = await resp.text();
       console.error("Gemini error", resp.status, txt);
-      return json({ error: `Gemini ${resp.status}: ${txt.slice(0, 300)}` }, 500);
+      const userMsg = resp.status === 503 || resp.status === 429
+        ? "Il modello AI è momentaneamente sovraccarico. Riprova tra qualche secondo."
+        : `Gemini ${resp.status}: ${txt.slice(0, 200)}`;
+      return json({ error: userMsg }, resp.status === 503 ? 503 : 500);
     }
 
     const gemData = await resp.json();
