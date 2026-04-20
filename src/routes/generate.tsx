@@ -77,6 +77,7 @@ function GeneratePage() {
       const msg = err instanceof Error ? err.message : "Errore";
       if (msg.includes("429")) toast.error("Troppi tentativi. Riprova tra poco.");
       else if (msg.includes("402")) toast.error("Crediti AI esauriti. Aggiungili in Settings.");
+      else if (msg.includes("503") || msg.toLowerCase().includes("sovraccarico")) toast.error("Modello AI sovraccarico. Riprova tra qualche secondo.");
       else toast.error(msg);
     } finally {
       setBusy(false);

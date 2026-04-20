@@ -113,26 +113,15 @@ ISTRUZIONI GRAMMATICA
 - "is_stretch": true SOLO per gli elementi sopra livello che hai introdotto.
 - "token_indices" punta ai token in cui la struttura si manifesta nel body.`;
 
-    const resp = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: sys }] },
-          contents: [{ role: "user", parts: [{ text: user_prompt }] }],
-          generationConfig: {
-            temperature: 0.9,
-            responseMimeType: "application/json",
-          },
-        }),
-      },
-    );
+    const resp = await callGeminiWithRetry(apiKey, sys, user_prompt);
 
     if (!resp.ok) {
       const txt = await resp.text();
       console.error("Gemini error", resp.status, txt);
-      return json({ error: `Gemini ${resp.status}: ${txt.slice(0, 300)}` }, 500);
+      const userMsg = resp.status === 503 || resp.status === 429
+        ? "Il modello AI è momentaneamente sovraccarico. Riprova tra qualche secondo."
+        : `Gemini ${resp.status}: ${txt.slice(0, 200)}`;
+      return json({ error: userMsg }, resp.status === 503 ? 503 : 500);
     }
 
     const gemData = await resp.json();
@@ -196,4 +185,30 @@ function json(o: unknown, status = 200) {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
+}
+
+async function callGeminiWithRetry(apiKey: string, sys: string, userPrompt: string): Promise<Response> {
+  const models = ["gemini-2.5-flash", "gemini-2.5-flash", "gemini-2.5-flash-lite"];
+  const delays = [0, 1500, 3500];
+  let lastResp: Response | null = null;
+  for (let i = 0; i < models.length; i++) {
+    if (delays[i] > 0) await new Promise((r) => setTimeout(r, delays[i]));
+    const resp = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${models[i]}:generateContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: sys }] },
+          contents: [{ role: "user", parts: [{ text: userPrompt }] }],
+          generationConfig: { temperature: 0.9, responseMimeType: "application/json" },
+        }),
+      },
+    );
+    if (resp.ok) return resp;
+    lastResp = resp;
+    if (resp.status !== 503 && resp.status !== 429) return resp;
+    console.warn(`Gemini ${models[i]} returned ${resp.status}, attempt ${i + 1}`);
+  }
+  return lastResp!;
 }

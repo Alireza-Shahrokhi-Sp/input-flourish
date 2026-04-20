@@ -86,21 +86,13 @@ OUTPUT (stesso schema della prima generazione):
 
 Tokens coprono l'intero body in ordine (spazi e punteggiatura inclusi). Grammar: complex solo per strutture non ovvie; is_stretch solo per gli elementi sopra livello introdotti.`;
 
-    const resp = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: sys }] },
-          contents: [{ role: "user", parts: [{ text: userPrompt }] }],
-          generationConfig: { temperature: 0.9, responseMimeType: "application/json" },
-        }),
-      },
-    );
+    const resp = await callGeminiWithRetry(apiKey, sys, userPrompt);
     if (!resp.ok) {
       const t = await resp.text();
-      return json({ error: `Gemini ${resp.status}: ${t.slice(0, 300)}` }, 500);
+      const userMsg = resp.status === 503 || resp.status === 429
+        ? "Il modello AI è momentaneamente sovraccarico. Riprova tra qualche secondo."
+        : `Gemini ${resp.status}: ${t.slice(0, 200)}`;
+      return json({ error: userMsg }, resp.status === 503 ? 503 : 500);
     }
     const g = await resp.json();
     const text = g?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text ?? "").join("") ?? "";
@@ -138,4 +130,30 @@ function json(o: unknown, status = 200) {
   return new Response(JSON.stringify(o), {
     status, headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
+}
+
+async function callGeminiWithRetry(apiKey: string, sys: string, userPrompt: string): Promise<Response> {
+  const models = ["gemini-2.5-flash", "gemini-2.5-flash", "gemini-2.5-flash-lite"];
+  const delays = [0, 1500, 3500];
+  let lastResp: Response | null = null;
+  for (let i = 0; i < models.length; i++) {
+    if (delays[i] > 0) await new Promise((r) => setTimeout(r, delays[i]));
+    const resp = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${models[i]}:generateContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: sys }] },
+          contents: [{ role: "user", parts: [{ text: userPrompt }] }],
+          generationConfig: { temperature: 0.9, responseMimeType: "application/json" },
+        }),
+      },
+    );
+    if (resp.ok) return resp;
+    lastResp = resp;
+    if (resp.status !== 503 && resp.status !== 429) return resp;
+    console.warn(`Gemini ${models[i]} returned ${resp.status}, attempt ${i + 1}`);
+  }
+  return lastResp!;
 }
