@@ -86,21 +86,13 @@ OUTPUT (stesso schema della prima generazione):
 
 Tokens coprono l'intero body in ordine (spazi e punteggiatura inclusi). Grammar: complex solo per strutture non ovvie; is_stretch solo per gli elementi sopra livello introdotti.`;
 
-    const resp = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: sys }] },
-          contents: [{ role: "user", parts: [{ text: userPrompt }] }],
-          generationConfig: { temperature: 0.9, responseMimeType: "application/json" },
-        }),
-      },
-    );
+    const resp = await callGeminiWithRetry(apiKey, sys, userPrompt);
     if (!resp.ok) {
       const t = await resp.text();
-      return json({ error: `Gemini ${resp.status}: ${t.slice(0, 300)}` }, 500);
+      const userMsg = resp.status === 503 || resp.status === 429
+        ? "Il modello AI è momentaneamente sovraccarico. Riprova tra qualche secondo."
+        : `Gemini ${resp.status}: ${t.slice(0, 200)}`;
+      return json({ error: userMsg }, resp.status === 503 ? 503 : 500);
     }
     const g = await resp.json();
     const text = g?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text ?? "").join("") ?? "";
