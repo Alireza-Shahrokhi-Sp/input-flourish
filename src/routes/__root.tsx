@@ -39,6 +39,15 @@ export const Route = createRootRoute({
         content:
           "Generate Italian stories tailored to your CEFR level with inline grammar help, vocabulary tracking, and shadowing audio.",
       },
+      { property: "og:title", content: "Letture — Italiano comprensibile" },
+      { name: "twitter:title", content: "Letture — Italiano comprensibile" },
+      { name: "description", content: "Italian Input Hub is a web app for managing comprehensible input for Italian language learners." },
+      { property: "og:description", content: "Italian Input Hub is a web app for managing comprehensible input for Italian language learners." },
+      { name: "twitter:description", content: "Italian Input Hub is a web app for managing comprehensible input for Italian language learners." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/0b35452c-36d2-4c12-a4e3-76ccb1ae7e82/id-preview-aa954d94--b7202ba3-3cbe-4e8a-9bc9-63c52dce97db.lovable.app-1776692779697.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/0b35452c-36d2-4c12-a4e3-76ccb1ae7e82/id-preview-aa954d94--b7202ba3-3cbe-4e8a-9bc9-63c52dce97db.lovable.app-1776692779697.png" },
+      { name: "twitter:card", content: "summary_large_image" },
+      { property: "og:type", content: "website" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
