@@ -20,6 +20,7 @@ export type Database = {
           default_level: Database["public"]["Enums"]["cefr_level"]
           default_stretch: boolean
           display_name: string | null
+          gemini_api_key: string | null
           id: string
           updated_at: string
           user_id: string
@@ -29,6 +30,7 @@ export type Database = {
           default_level?: Database["public"]["Enums"]["cefr_level"]
           default_stretch?: boolean
           display_name?: string | null
+          gemini_api_key?: string | null
           id?: string
           updated_at?: string
           user_id: string
@@ -38,6 +40,7 @@ export type Database = {
           default_level?: Database["public"]["Enums"]["cefr_level"]
           default_stretch?: boolean
           display_name?: string | null
+          gemini_api_key?: string | null
           id?: string
           updated_at?: string
           user_id?: string

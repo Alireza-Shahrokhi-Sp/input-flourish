@@ -25,6 +25,7 @@ function SettingsPage() {
   const [displayName, setDisplayName] = React.useState("");
   const [level, setLevel] = React.useState<typeof LEVELS[number]>("A2");
   const [stretch, setStretch] = React.useState(false);
+  const [geminiKey, setGeminiKey] = React.useState("");
   const [busy, setBusy] = React.useState(false);
 
   React.useEffect(() => {
@@ -34,13 +35,14 @@ function SettingsPage() {
   React.useEffect(() => {
     if (!user) return;
     supabase.from("profiles")
-      .select("display_name,default_level,default_stretch")
+      .select("display_name,default_level,default_stretch,gemini_api_key")
       .eq("user_id", user.id).maybeSingle()
       .then(({ data }) => {
         if (data) {
           setDisplayName(data.display_name ?? "");
           setLevel(data.default_level as typeof LEVELS[number]);
           setStretch(!!data.default_stretch);
+          setGeminiKey((data as { gemini_api_key?: string | null }).gemini_api_key ?? "");
         }
       });
   }, [user]);
@@ -52,6 +54,7 @@ function SettingsPage() {
       display_name: displayName || null,
       default_level: level,
       default_stretch: stretch,
+      gemini_api_key: geminiKey.trim() || null,
     }).eq("user_id", user.id);
     setBusy(false);
     if (error) toast.error(error.message);
@@ -81,6 +84,23 @@ function SettingsPage() {
           <div className="flex items-center justify-between rounded-lg border border-border p-3">
             <Label htmlFor="stretch" className="cursor-pointer">Sfidami (+) di default</Label>
             <Switch id="stretch" checked={stretch} onCheckedChange={setStretch} />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="gk">Chiave API Gemini (personale)</Label>
+            <Input
+              id="gk"
+              type="password"
+              placeholder="AIza…"
+              value={geminiKey}
+              onChange={(e) => setGeminiKey(e.target.value)}
+              autoComplete="off"
+            />
+            <p className="text-xs text-muted-foreground">
+              Ottienila gratis su{" "}
+              <a className="underline" href="https://aistudio.google.com/apikey" target="_blank" rel="noreferrer">
+                aistudio.google.com/apikey
+              </a>. Usata solo per generare le tue storie.
+            </p>
           </div>
           <Button className="w-full" onClick={save} disabled={busy}>
             {busy ? "Salvando…" : "Salva"}

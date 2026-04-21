@@ -47,8 +47,10 @@ Deno.serve(async (req) => {
     const format: string = body.format ?? "short_story";
     const topic: string | null = body.topic ?? null;
 
-    const apiKey = Deno.env.get("LOVABLE_API_KEY");
-    if (!apiKey) return json({ error: "LOVABLE_API_KEY non configurata" }, 500);
+    const { data: prof } = await supabase
+      .from("profiles").select("gemini_api_key").eq("user_id", user.id).maybeSingle();
+    const apiKey = (prof?.gemini_api_key as string | null) || Deno.env.get("GEMINI_API_KEY");
+    if (!apiKey) return json({ error: "Nessuna chiave Gemini. Aggiungi la tua in Impostazioni." }, 400);
 
     // Pull a small slice of the user's known vocab so the LLM can recycle some of it
     const { data: vocab } = await supabase
@@ -113,21 +115,22 @@ ISTRUZIONI GRAMMATICA
 - "is_stretch": true SOLO per gli elementi sopra livello che hai introdotto.
 - "token_indices" punta ai token in cui la struttura si manifesta nel body.`;
 
-    const resp = await callAIWithRetry(apiKey, sys, user_prompt);
+    const resp = await callGeminiWithRetry(apiKey, sys, user_prompt);
 
     if (!resp.ok) {
       const txt = await resp.text();
-      console.error("AI gateway error", resp.status, txt);
+      console.error("Gemini error", resp.status, txt);
       const userMsg = resp.status === 503 || resp.status === 429
         ? "Il modello AI è momentaneamente sovraccarico. Riprova tra qualche secondo."
-        : resp.status === 402
-        ? "Crediti AI esauriti. Aggiungili nelle impostazioni del workspace."
-        : `AI ${resp.status}: ${txt.slice(0, 200)}`;
-      return json({ error: userMsg }, resp.status === 503 ? 503 : resp.status === 402 ? 402 : 500);
+        : resp.status === 400 || resp.status === 401 || resp.status === 403
+        ? "Chiave Gemini non valida. Aggiornala in Impostazioni."
+        : `Gemini ${resp.status}: ${txt.slice(0, 200)}`;
+      return json({ error: userMsg }, resp.status === 503 ? 503 : 500);
     }
 
     const gemData = await resp.json();
-    const text = gemData?.choices?.[0]?.message?.content ?? "";
+    const text =
+      gemData?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text ?? "").join("") ?? "";
 
     let parsed: {
       title: string; summary?: string; topic?: string; body: string;
@@ -189,7 +192,7 @@ function json(o: unknown, status = 200) {
 }
 
 async function callGeminiWithRetry(apiKey: string, sys: string, userPrompt: string): Promise<Response> {
-  const models = ["gemini-2.5-flash", "gemini-2.5-flash", "gemini-2.5-flash-lite"];
+  const models = ["gemini-2.5-flash-lite", "gemini-2.5-flash-lite", "gemini-2.5-flash"];
   const delays = [0, 1500, 3500];
   let lastResp: Response | null = null;
   for (let i = 0; i < models.length; i++) {
