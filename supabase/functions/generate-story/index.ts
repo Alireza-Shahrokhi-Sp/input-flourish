@@ -47,8 +47,10 @@ Deno.serve(async (req) => {
     const format: string = body.format ?? "short_story";
     const topic: string | null = body.topic ?? null;
 
-    const apiKey = Deno.env.get("LOVABLE_API_KEY");
-    if (!apiKey) return json({ error: "LOVABLE_API_KEY non configurata" }, 500);
+    const { data: prof } = await supabase
+      .from("profiles").select("gemini_api_key").eq("user_id", user.id).maybeSingle();
+    const apiKey = (prof?.gemini_api_key as string | null) || Deno.env.get("GEMINI_API_KEY");
+    if (!apiKey) return json({ error: "Nessuna chiave Gemini. Aggiungi la tua in Impostazioni." }, 400);
 
     // Pull a small slice of the user's known vocab so the LLM can recycle some of it
     const { data: vocab } = await supabase
