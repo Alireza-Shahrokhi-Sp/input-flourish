@@ -192,7 +192,7 @@ function json(o: unknown, status = 200) {
 }
 
 async function callGeminiWithRetry(apiKey: string, sys: string, userPrompt: string): Promise<Response> {
-  const models = ["gemini-2.5-flash", "gemini-2.5-flash", "gemini-2.5-flash-lite"];
+  const models = ["gemini-2.5-flash-lite", "gemini-2.5-flash-lite", "gemini-2.5-flash"];
   const delays = [0, 1500, 3500];
   let lastResp: Response | null = null;
   for (let i = 0; i < models.length; i++) {
