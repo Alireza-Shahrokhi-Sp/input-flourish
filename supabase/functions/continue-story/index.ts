@@ -28,14 +28,16 @@ Deno.serve(async (req) => {
     const url = Deno.env.get("SUPABASE_URL")!;
     const anon = Deno.env.get("SUPABASE_PUBLISHABLE_KEY") ?? Deno.env.get("SUPABASE_ANON_KEY")!;
     const svc = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const apiKey = Deno.env.get("GEMINI_API_KEY");
-    if (!apiKey) return json({ error: "GEMINI_API_KEY non configurata" }, 500);
-
     const auth = createClient(url, anon);
-    const { data: u, error: ue } = await auth.getUser(token);
+    const { data: u, error: ue } = await auth.auth.getUser(token);
     if (ue || !u.user) return json({ error: "Unauthorized" }, 401);
     const user = u.user;
     const supabase = createClient(url, svc);
+
+    const { data: prof } = await supabase
+      .from("profiles").select("gemini_api_key").eq("user_id", user.id).maybeSingle();
+    const apiKey = (prof?.gemini_api_key as string | null) || Deno.env.get("GEMINI_API_KEY");
+    if (!apiKey) return json({ error: "Nessuna chiave Gemini. Aggiungi la tua in Impostazioni." }, 400);
 
     const { previous_story_id } = await req.json();
     if (!previous_story_id) return json({ error: "previous_story_id mancante" }, 400);
