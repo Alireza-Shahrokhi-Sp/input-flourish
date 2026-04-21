@@ -85,6 +85,23 @@ function SettingsPage() {
             <Label htmlFor="stretch" className="cursor-pointer">Sfidami (+) di default</Label>
             <Switch id="stretch" checked={stretch} onCheckedChange={setStretch} />
           </div>
+          <div className="space-y-1">
+            <Label htmlFor="gk">Chiave API Gemini (personale)</Label>
+            <Input
+              id="gk"
+              type="password"
+              placeholder="AIza…"
+              value={geminiKey}
+              onChange={(e) => setGeminiKey(e.target.value)}
+              autoComplete="off"
+            />
+            <p className="text-xs text-muted-foreground">
+              Ottienila gratis su{" "}
+              <a className="underline" href="https://aistudio.google.com/apikey" target="_blank" rel="noreferrer">
+                aistudio.google.com/apikey
+              </a>. Usata solo per generare le tue storie.
+            </p>
+          </div>
           <Button className="w-full" onClick={save} disabled={busy}>
             {busy ? "Salvando…" : "Salva"}
           </Button>
