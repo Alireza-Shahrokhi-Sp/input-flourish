@@ -115,21 +115,22 @@ ISTRUZIONI GRAMMATICA
 - "is_stretch": true SOLO per gli elementi sopra livello che hai introdotto.
 - "token_indices" punta ai token in cui la struttura si manifesta nel body.`;
 
-    const resp = await callAIWithRetry(apiKey, sys, user_prompt);
+    const resp = await callGeminiWithRetry(apiKey, sys, user_prompt);
 
     if (!resp.ok) {
       const txt = await resp.text();
-      console.error("AI gateway error", resp.status, txt);
+      console.error("Gemini error", resp.status, txt);
       const userMsg = resp.status === 503 || resp.status === 429
         ? "Il modello AI è momentaneamente sovraccarico. Riprova tra qualche secondo."
-        : resp.status === 402
-        ? "Crediti AI esauriti. Aggiungili nelle impostazioni del workspace."
-        : `AI ${resp.status}: ${txt.slice(0, 200)}`;
-      return json({ error: userMsg }, resp.status === 503 ? 503 : resp.status === 402 ? 402 : 500);
+        : resp.status === 400 || resp.status === 401 || resp.status === 403
+        ? "Chiave Gemini non valida. Aggiornala in Impostazioni."
+        : `Gemini ${resp.status}: ${txt.slice(0, 200)}`;
+      return json({ error: userMsg }, resp.status === 503 ? 503 : 500);
     }
 
     const gemData = await resp.json();
-    const text = gemData?.choices?.[0]?.message?.content ?? "";
+    const text =
+      gemData?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text ?? "").join("") ?? "";
 
     let parsed: {
       title: string; summary?: string; topic?: string; body: string;
