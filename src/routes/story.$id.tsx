@@ -54,6 +54,8 @@ function StoryPage() {
   const [story, setStory] = React.useState<Story | null>(null);
   const [ann, setAnn] = React.useState<Annotations | null>(null);
   const [savedLemmas, setSavedLemmas] = React.useState<Set<string>>(new Set());
+  const [targetLemmas, setTargetLemmas] = React.useState<Set<string>>(new Set());
+  const [targetIdByLemma, setTargetIdByLemma] = React.useState<Map<string, string>>(new Map());
   const [playing, setPlaying] = React.useState(false);
   const [continuing, setContinuing] = React.useState(false);
 
