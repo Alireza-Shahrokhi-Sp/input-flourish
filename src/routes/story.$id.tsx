@@ -42,6 +42,8 @@ type Story = {
   body: string;
   summary: string | null;
   parent_story_id: string | null;
+  target_word_ids: string[] | null;
+  theme_tag: string | null;
 };
 type Annotations = { tokens: Token[]; grammar: GrammarEntry[] };
 
