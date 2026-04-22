@@ -124,6 +124,30 @@ function StoryPage() {
     setPlaying(true);
   };
 
+  const bumpEaseHarder = async (vocabId?: string) => {
+    if (!user || !vocabId) return;
+    const { data: existing } = await supabase
+      .from("srs_reviews")
+      .select("id,ease,interval_days,reps,lapses,due_at")
+      .eq("vocab_id", vocabId)
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (existing) {
+      const newEase = Math.max(1.3, Number(existing.ease ?? 2.5) - 0.15);
+      await supabase.from("srs_reviews").update({ ease: newEase }).eq("id", existing.id);
+    } else {
+      await supabase.from("srs_reviews").insert({
+        user_id: user.id,
+        vocab_id: vocabId,
+        ease: 2.35,
+        interval_days: 0,
+        reps: 0,
+        lapses: 0,
+        due_at: new Date().toISOString(),
+      });
+    }
+  };
+
   const saveVocab = async (tok: Token) => {
     if (!user || !tok.lemma) return;
     const lemma = tok.lemma.toLowerCase();
