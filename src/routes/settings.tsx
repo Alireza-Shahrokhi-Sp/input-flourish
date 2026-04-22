@@ -135,6 +135,31 @@ function SettingsPage() {
 
         <div className="rounded-xl border border-border bg-card p-6">
           <p className="text-sm text-muted-foreground">{user?.email}</p>
+        <div className="rounded-xl border border-border bg-card p-6 space-y-3">
+          <div>
+            <h2 className="font-display text-xl">Importa da Anki</h2>
+            <p className="text-xs text-muted-foreground mt-1">
+              Esporta dal tuo deck Anki come <strong>Notes in Plain Text (.txt/.csv)</strong> includendo
+              campi e tag. Le colonne riconosciute: <code>front/lemma</code>, <code>back/translation</code>,
+              <code> interval</code>, <code>ease</code>, <code>reps</code>, <code>lapses</code>, <code>tags</code>.
+              Le parole già presenti verranno sostituite con i dati di Anki.
+            </p>
+          </div>
+          <Input
+            ref={fileRef}
+            type="file"
+            accept=".csv,.tsv,.txt,text/csv,text/tab-separated-values,text/plain"
+            disabled={importing}
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) onImportFile(f);
+            }}
+          />
+          {importing && <p className="text-xs text-muted-foreground">Importazione in corso…</p>}
+        </div>
+
+        <div className="rounded-xl border border-border bg-card p-6">
+          <p className="text-sm text-muted-foreground">{user?.email}</p>
           <Button variant="outline" className="mt-3 w-full" onClick={async () => {
             await signOut(); nav({ to: "/" });
           }}>Esci</Button>
