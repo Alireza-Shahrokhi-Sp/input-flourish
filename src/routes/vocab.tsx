@@ -21,6 +21,9 @@ type Row = {
   notes: string | null;
   first_story_id: string | null;
   created_at: string;
+  theme_tag: string | null;
+  status: string;
+  cefr_level: string | null;
   due_at?: string | null;
 };
 
@@ -39,7 +42,7 @@ function VocabPage() {
     if (!user) return;
     const { data: vocab } = await supabase
       .from("vocab_items")
-      .select("id,lemma,pos,translation,notes,first_story_id,created_at")
+      .select("id,lemma,pos,translation,notes,first_story_id,created_at,theme_tag,status,cefr_level")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false });
     const { data: srs } = await supabase
