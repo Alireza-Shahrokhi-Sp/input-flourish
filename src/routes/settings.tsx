@@ -133,8 +133,6 @@ function SettingsPage() {
           </Button>
         </div>
 
-        <div className="rounded-xl border border-border bg-card p-6">
-          <p className="text-sm text-muted-foreground">{user?.email}</p>
         <div className="rounded-xl border border-border bg-card p-6 space-y-3">
           <div>
             <h2 className="font-display text-xl">Importa da Anki</h2>
