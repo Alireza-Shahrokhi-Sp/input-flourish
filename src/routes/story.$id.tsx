@@ -184,11 +184,13 @@ function StoryPage() {
                 const g = grammarByToken.get(t.i);
                 const isWord = /\p{L}/u.test(t.surface);
                 if (!isWord) return <span key={t.i}>{t.surface}</span>;
+                const lemmaKey = (t.lemma ?? t.surface).toLowerCase();
+                const isTarget = targetLemmas.has(lemmaKey);
                 return (
-                  <Popover key={t.i}>
+                  <Popover key={t.i} onOpenChange={(open) => { if (open && isTarget) bumpEaseHarder(targetIdByLemma.get(lemmaKey)); }}>
                     <PopoverTrigger asChild>
                       <span
-                        className={`word-tok ${g ? `grammar-mark ${g.is_stretch ? "stretch" : ""}` : ""}`}
+                        className={`word-tok ${isTarget ? "target-word" : ""} ${g ? `grammar-mark ${g.is_stretch ? "stretch" : ""}` : ""}`}
                       >
                         {t.surface}
                       </span>
