@@ -159,6 +159,8 @@ function StoryPage() {
       translation: tok.translation,
       first_story_id: id,
       first_seen_sentence: tok.surface,
+      cefr_level: story?.level ?? null,
+      theme_tag: story?.theme_tag ?? null,
     });
     if (error) {
       if (!error.message.includes("duplicate")) {
