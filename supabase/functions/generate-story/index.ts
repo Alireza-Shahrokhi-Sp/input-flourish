@@ -99,12 +99,15 @@ PARAMETRI
 - Formato: ${format}
 - Lunghezza target: ${minW}-${maxW} parole
 - Argomento: ${topic ?? "scegli tu qualcosa di interessante e specifico (evita cliché)"}
+${theme_tag ? `- Tema/categoria: ${theme_tag}` : ""}
 ${knownLemmas.length ? `- Riusa con naturalezza qualche parola che lo studente già conosce: ${knownLemmas.slice(0, 30).join(", ")}` : ""}
-${stretchPool.length ? `- Elementi di sfida ammessi (scegline 1 o 2, in modo NATURALE, non forzato): ${stretchPool.join("; ")}` : ""}
+${stretchPool.length ? `- Elementi di sfida ammessi (scegline 1 o 2, in modo NATURALE, non forzato): ${stretchPool.join("; ")}` : ""}${targetBlock}
 
 REGOLE
 - Italiano autentico e vivo, non scolastico. Voce coerente con il formato.
 - Mantieni il grosso del lessico/grammatica al livello ${level}.
+- REGOLA DEL 98%: almeno il 97-98% delle parole DEVE essere di livello ${level} o inferiore. Le PAROLE BERSAGLIO contano nell'altro 2-3%.
+- Ogni PAROLA BERSAGLIO va usata almeno DUE volte, in frasi diverse e in contesti differenti, per rinforzare l'acquisizione.
 - Non usare più di 1-2 elementi sopra livello, e SOLO quelli ammessi sopra.
 - Nessuna premessa, nessun titolo nel corpo: solo la storia.
 
@@ -187,6 +190,8 @@ ISTRUZIONI GRAMMATICA
         body: parsed.body,
         summary: parsed.summary ?? null,
         word_count,
+        theme_tag,
+        target_word_ids: targetWordIds,
       })
       .select("id")
       .single();
