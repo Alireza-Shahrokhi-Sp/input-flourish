@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.continue-story]
 verify_jwt = false
+
+[functions.import-anki]
+verify_jwt = false
