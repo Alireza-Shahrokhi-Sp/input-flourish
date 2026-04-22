@@ -74,9 +74,23 @@ function StoryPage() {
       setAnn((a as Annotations | null) ?? { tokens: [], grammar: [] });
       const { data: vocab } = await supabase
         .from("vocab_items")
-        .select("lemma")
+        .select("id,lemma")
         .eq("user_id", user.id);
       setSavedLemmas(new Set((vocab ?? []).map((v: { lemma: string }) => v.lemma)));
+
+      const targetIds = (s as Story | null)?.target_word_ids ?? [];
+      if (targetIds && targetIds.length) {
+        const map = new Map<string, string>();
+        const lemmas = new Set<string>();
+        for (const v of (vocab ?? []) as { id: string; lemma: string }[]) {
+          if (targetIds.includes(v.id)) {
+            map.set(v.lemma.toLowerCase(), v.id);
+            lemmas.add(v.lemma.toLowerCase());
+          }
+        }
+        setTargetIdByLemma(map);
+        setTargetLemmas(lemmas);
+      }
     })();
   }, [id, user]);
 
