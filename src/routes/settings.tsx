@@ -47,6 +47,32 @@ function SettingsPage() {
       });
   }, [user]);
 
+  const fileRef = React.useRef<HTMLInputElement>(null);
+  const [importing, setImporting] = React.useState(false);
+
+  const onImportFile = async (file: File) => {
+    if (!user) return;
+    setImporting(true);
+    try {
+      const text = await file.text();
+      const { data: sess } = await supabase.auth.getSession();
+      const token = sess.session?.access_token;
+      if (!token) throw new Error("Sessione scaduta");
+      const { data, error } = await supabase.functions.invoke("import-anki", {
+        body: { csv: text },
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (error) throw error;
+      const r = data as { imported: number; inserted: number; updated: number; mature: number; skipped: number };
+      toast.success(`Importate ${r.imported} parole (${r.inserted} nuove, ${r.updated} aggiornate, ${r.mature} mature)`);
+    } catch (e) {
+      toast.error((e as Error).message || "Errore importazione");
+    } finally {
+      setImporting(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  };
+
   const save = async () => {
     if (!user) return;
     setBusy(true);
