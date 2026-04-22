@@ -46,23 +46,49 @@ Deno.serve(async (req) => {
     const stretch_level: string | null = body.stretch_level ?? null;
     const format: string = body.format ?? "short_story";
     const topic: string | null = body.topic ?? null;
+    const theme_tag: string | null = body.theme_tag ?? null;
 
     const { data: prof } = await supabase
       .from("profiles").select("gemini_api_key").eq("user_id", user.id).maybeSingle();
     const apiKey = (prof?.gemini_api_key as string | null) || Deno.env.get("GEMINI_API_KEY");
     if (!apiKey) return json({ error: "Nessuna chiave Gemini. Aggiungi la tua in Impostazioni." }, 400);
 
-    // Pull a small slice of the user's known vocab so the LLM can recycle some of it
-    const { data: vocab } = await supabase
+    // --- SRS-due target word selection ---
+    // Pick 3-5 due words from the same theme (if provided), else from any theme.
+    type VocabRow = { id: string; lemma: string; pos: string | null; translation: string | null; theme_tag: string | null };
+    const nowIso = new Date().toISOString();
+
+    let dueQuery = supabase
       .from("vocab_items")
-      .select("lemma")
-      .eq("user_id", user.id)
-      .limit(80);
-    const knownLemmas = (vocab ?? []).map((v: { lemma: string }) => v.lemma);
+      .select("id,lemma,pos,translation,theme_tag,srs_reviews!left(due_at,ease)")
+      .eq("user_id", user.id);
+    if (theme_tag) dueQuery = dueQuery.eq("theme_tag", theme_tag);
+    const { data: vocabRaw } = await dueQuery.limit(200);
+
+    type Joined = VocabRow & { srs_reviews: { due_at: string; ease: number }[] };
+    const vocabAll = (vocabRaw ?? []) as Joined[];
+    const due = vocabAll
+      .map((v) => {
+        const srs = v.srs_reviews?.[0];
+        const dueAt = srs?.due_at ?? null;
+        return { v, dueAt, ease: srs?.ease ?? 2.5, isDue: !dueAt || dueAt <= nowIso };
+      })
+      .filter((x) => x.isDue)
+      .sort((a, b) => a.ease - b.ease) // hardest first
+      .slice(0, 5);
+    const targetWords = due.map((d) => d.v);
+    const targetWordIds = targetWords.map((v) => v.id);
+
+    // Background known vocab to recycle (limit 30)
+    const knownLemmas = vocabAll.slice(0, 30).map((v) => v.lemma);
 
     const [minW, maxW] = TARGET_WORDS[level] ?? [200, 350];
     const stretchKey = stretch_level ? `${level}->${stretch_level}` : null;
     const stretchPool = stretchKey ? STRETCH_POOL[stretchKey] ?? [] : [];
+
+    const targetBlock = targetWords.length
+      ? `\n- PAROLE BERSAGLIO da ripassare (usa OGNUNA almeno DUE volte in frasi diverse, in forma flessa naturale — non forzare la forma di citazione):\n${targetWords.map((v) => `  • ${v.lemma}${v.translation ? ` (${v.translation})` : ""}${v.pos ? ` [${v.pos}]` : ""}`).join("\n")}`
+      : "";
 
     const sys = `Sei un autore italiano e linguista applicato. Scrivi storie in italiano per studenti di livello CEFR. RISPONDI SOLO in JSON valido secondo lo schema richiesto, senza testo extra e senza fence di codice.`;
 
