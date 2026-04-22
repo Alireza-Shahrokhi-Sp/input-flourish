@@ -21,6 +21,9 @@ type Row = {
   notes: string | null;
   first_story_id: string | null;
   created_at: string;
+  theme_tag: string | null;
+  status: string;
+  cefr_level: string | null;
   due_at?: string | null;
 };
 
@@ -39,7 +42,7 @@ function VocabPage() {
     if (!user) return;
     const { data: vocab } = await supabase
       .from("vocab_items")
-      .select("id,lemma,pos,translation,notes,first_story_id,created_at")
+      .select("id,lemma,pos,translation,notes,first_story_id,created_at,theme_tag,status,cefr_level")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false });
     const { data: srs } = await supabase
@@ -60,6 +63,20 @@ function VocabPage() {
     const { error } = await supabase.from("vocab_items").delete().eq("id", id);
     if (error) return toast.error(error.message);
     setRows(rows?.filter((r) => r.id !== id) ?? null);
+  };
+
+  const updateTheme = async (id: string, theme_tag: string) => {
+    const value = theme_tag.trim() || null;
+    const { error } = await supabase.from("vocab_items").update({ theme_tag: value }).eq("id", id);
+    if (error) return toast.error(error.message);
+    setRows((rs) => rs?.map((r) => r.id === id ? { ...r, theme_tag: value } : r) ?? null);
+  };
+
+  const toggleStatus = async (id: string, current: string) => {
+    const next = current === "mastering" ? "learning" : "mastering";
+    const { error } = await supabase.from("vocab_items").update({ status: next }).eq("id", id);
+    if (error) return toast.error(error.message);
+    setRows((rs) => rs?.map((r) => r.id === id ? { ...r, status: next } : r) ?? null);
   };
 
   const filtered = rows?.filter(
@@ -99,12 +116,26 @@ function VocabPage() {
             return (
               <li key={r.id} className="flex items-center gap-3 p-4">
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-baseline gap-2">
+                  <div className="flex items-baseline gap-2 flex-wrap">
                     <span className="font-display text-xl">{r.lemma}</span>
                     {r.pos && <span className="text-xs uppercase text-muted-foreground">{r.pos}</span>}
                     {due && <span className="text-xs text-stretch font-medium">da ripassare</span>}
+                    <button
+                      onClick={() => toggleStatus(r.id, r.status)}
+                      className="text-[10px] uppercase tracking-wide rounded-full border border-border px-2 py-0.5 hover:bg-muted"
+                    >
+                      {r.status}
+                    </button>
                   </div>
                   {r.translation && <p className="text-sm text-muted-foreground">{r.translation}</p>}
+                  <Input
+                    className="mt-2 h-7 text-xs max-w-[220px]"
+                    placeholder="tema (es. cucina)"
+                    defaultValue={r.theme_tag ?? ""}
+                    onBlur={(e) => {
+                      if ((e.target.value || "") !== (r.theme_tag ?? "")) updateTheme(r.id, e.target.value);
+                    }}
+                  />
                 </div>
                 <Button variant="ghost" size="icon" onClick={() => remove(r.id)} aria-label="Elimina">
                   <Trash2 className="h-4 w-4" />

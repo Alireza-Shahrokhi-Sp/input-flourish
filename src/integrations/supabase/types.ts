@@ -105,6 +105,8 @@ export type Database = {
           parent_story_id: string | null
           stretch_level: Database["public"]["Enums"]["cefr_level"] | null
           summary: string | null
+          target_word_ids: string[]
+          theme_tag: string | null
           title: string
           topic: string | null
           updated_at: string
@@ -121,6 +123,8 @@ export type Database = {
           parent_story_id?: string | null
           stretch_level?: Database["public"]["Enums"]["cefr_level"] | null
           summary?: string | null
+          target_word_ids?: string[]
+          theme_tag?: string | null
           title: string
           topic?: string | null
           updated_at?: string
@@ -137,6 +141,8 @@ export type Database = {
           parent_story_id?: string | null
           stretch_level?: Database["public"]["Enums"]["cefr_level"] | null
           summary?: string | null
+          target_word_ids?: string[]
+          theme_tag?: string | null
           title?: string
           topic?: string | null
           updated_at?: string
@@ -211,6 +217,7 @@ export type Database = {
       }
       vocab_items: {
         Row: {
+          cefr_level: string | null
           created_at: string
           first_seen_sentence: string | null
           first_story_id: string | null
@@ -218,10 +225,13 @@ export type Database = {
           lemma: string
           notes: string | null
           pos: string | null
+          status: string
+          theme_tag: string | null
           translation: string | null
           user_id: string
         }
         Insert: {
+          cefr_level?: string | null
           created_at?: string
           first_seen_sentence?: string | null
           first_story_id?: string | null
@@ -229,10 +239,13 @@ export type Database = {
           lemma: string
           notes?: string | null
           pos?: string | null
+          status?: string
+          theme_tag?: string | null
           translation?: string | null
           user_id: string
         }
         Update: {
+          cefr_level?: string | null
           created_at?: string
           first_seen_sentence?: string | null
           first_story_id?: string | null
@@ -240,6 +253,8 @@ export type Database = {
           lemma?: string
           notes?: string | null
           pos?: string | null
+          status?: string
+          theme_tag?: string | null
           translation?: string | null
           user_id?: string
         }

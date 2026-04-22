@@ -46,23 +46,49 @@ Deno.serve(async (req) => {
     const stretch_level: string | null = body.stretch_level ?? null;
     const format: string = body.format ?? "short_story";
     const topic: string | null = body.topic ?? null;
+    const theme_tag: string | null = body.theme_tag ?? null;
 
     const { data: prof } = await supabase
       .from("profiles").select("gemini_api_key").eq("user_id", user.id).maybeSingle();
     const apiKey = (prof?.gemini_api_key as string | null) || Deno.env.get("GEMINI_API_KEY");
     if (!apiKey) return json({ error: "Nessuna chiave Gemini. Aggiungi la tua in Impostazioni." }, 400);
 
-    // Pull a small slice of the user's known vocab so the LLM can recycle some of it
-    const { data: vocab } = await supabase
+    // --- SRS-due target word selection ---
+    // Pick 3-5 due words from the same theme (if provided), else from any theme.
+    type VocabRow = { id: string; lemma: string; pos: string | null; translation: string | null; theme_tag: string | null };
+    const nowIso = new Date().toISOString();
+
+    let dueQuery = supabase
       .from("vocab_items")
-      .select("lemma")
-      .eq("user_id", user.id)
-      .limit(80);
-    const knownLemmas = (vocab ?? []).map((v: { lemma: string }) => v.lemma);
+      .select("id,lemma,pos,translation,theme_tag,srs_reviews!left(due_at,ease)")
+      .eq("user_id", user.id);
+    if (theme_tag) dueQuery = dueQuery.eq("theme_tag", theme_tag);
+    const { data: vocabRaw } = await dueQuery.limit(200);
+
+    type Joined = VocabRow & { srs_reviews: { due_at: string; ease: number }[] };
+    const vocabAll = (vocabRaw ?? []) as Joined[];
+    const due = vocabAll
+      .map((v) => {
+        const srs = v.srs_reviews?.[0];
+        const dueAt = srs?.due_at ?? null;
+        return { v, dueAt, ease: srs?.ease ?? 2.5, isDue: !dueAt || dueAt <= nowIso };
+      })
+      .filter((x) => x.isDue)
+      .sort((a, b) => a.ease - b.ease) // hardest first
+      .slice(0, 5);
+    const targetWords = due.map((d) => d.v);
+    const targetWordIds = targetWords.map((v) => v.id);
+
+    // Background known vocab to recycle (limit 30)
+    const knownLemmas = vocabAll.slice(0, 30).map((v) => v.lemma);
 
     const [minW, maxW] = TARGET_WORDS[level] ?? [200, 350];
     const stretchKey = stretch_level ? `${level}->${stretch_level}` : null;
     const stretchPool = stretchKey ? STRETCH_POOL[stretchKey] ?? [] : [];
+
+    const targetBlock = targetWords.length
+      ? `\n- PAROLE BERSAGLIO da ripassare (usa OGNUNA almeno DUE volte in frasi diverse, in forma flessa naturale — non forzare la forma di citazione):\n${targetWords.map((v) => `  • ${v.lemma}${v.translation ? ` (${v.translation})` : ""}${v.pos ? ` [${v.pos}]` : ""}`).join("\n")}`
+      : "";
 
     const sys = `Sei un autore italiano e linguista applicato. Scrivi storie in italiano per studenti di livello CEFR. RISPONDI SOLO in JSON valido secondo lo schema richiesto, senza testo extra e senza fence di codice.`;
 
@@ -73,12 +99,15 @@ PARAMETRI
 - Formato: ${format}
 - Lunghezza target: ${minW}-${maxW} parole
 - Argomento: ${topic ?? "scegli tu qualcosa di interessante e specifico (evita cliché)"}
+${theme_tag ? `- Tema/categoria: ${theme_tag}` : ""}
 ${knownLemmas.length ? `- Riusa con naturalezza qualche parola che lo studente già conosce: ${knownLemmas.slice(0, 30).join(", ")}` : ""}
-${stretchPool.length ? `- Elementi di sfida ammessi (scegline 1 o 2, in modo NATURALE, non forzato): ${stretchPool.join("; ")}` : ""}
+${stretchPool.length ? `- Elementi di sfida ammessi (scegline 1 o 2, in modo NATURALE, non forzato): ${stretchPool.join("; ")}` : ""}${targetBlock}
 
 REGOLE
 - Italiano autentico e vivo, non scolastico. Voce coerente con il formato.
 - Mantieni il grosso del lessico/grammatica al livello ${level}.
+- REGOLA DEL 98%: almeno il 97-98% delle parole DEVE essere di livello ${level} o inferiore. Le PAROLE BERSAGLIO contano nell'altro 2-3%.
+- Ogni PAROLA BERSAGLIO va usata almeno DUE volte, in frasi diverse e in contesti differenti, per rinforzare l'acquisizione.
 - Non usare più di 1-2 elementi sopra livello, e SOLO quelli ammessi sopra.
 - Nessuna premessa, nessun titolo nel corpo: solo la storia.
 
@@ -161,6 +190,8 @@ ISTRUZIONI GRAMMATICA
         body: parsed.body,
         summary: parsed.summary ?? null,
         word_count,
+        theme_tag,
+        target_word_ids: targetWordIds,
       })
       .select("id")
       .single();

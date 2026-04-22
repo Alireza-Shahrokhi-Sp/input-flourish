@@ -149,3 +149,10 @@
   background-color: color-mix(in oklab, var(--color-primary) 14%, transparent);
   border-radius: 2px;
 }
+.word-tok.target-word {
+  background-color: color-mix(in oklab, var(--color-stretch) 18%, transparent);
+  border-bottom: 2px solid var(--color-stretch);
+  border-radius: 2px;
+  padding: 0 2px;
+  font-weight: 600;
+}

@@ -34,7 +34,23 @@ function GeneratePage() {
   const [stretch, setStretch] = React.useState(false);
   const [format, setFormat] = React.useState<(typeof FORMATS)[number]["value"]>("short_story");
   const [topic, setTopic] = React.useState("");
+  const [theme, setTheme] = React.useState("");
   const [busy, setBusy] = React.useState(false);
+  const [themes, setThemes] = React.useState<string[]>([]);
+
+  React.useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("vocab_items")
+      .select("theme_tag")
+      .eq("user_id", user.id)
+      .not("theme_tag", "is", null)
+      .then(({ data }) => {
+        const set = new Set<string>();
+        for (const r of data ?? []) if (r.theme_tag) set.add(r.theme_tag);
+        setThemes(Array.from(set).sort());
+      });
+  }, [user]);
 
   React.useEffect(() => {
     if (!loading && !user) nav({ to: "/auth" });
@@ -67,6 +83,7 @@ function GeneratePage() {
           stretch_level: stretch ? nextLevel(level) : null,
           format,
           topic: topic.trim() || null,
+          theme_tag: theme.trim() || null,
         },
       });
       if (error) throw error;
@@ -136,6 +153,23 @@ function GeneratePage() {
             {stretch && nextLevel(level) && (
               <span className="text-sm text-stretch font-medium">{level}+</span>
             )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="theme">Tema (per ripasso mirato)</Label>
+            <Input
+              id="theme"
+              list="theme-suggestions"
+              placeholder="es. cucina, viaggi, lavoro…"
+              value={theme}
+              onChange={(e) => setTheme(e.target.value)}
+            />
+            <datalist id="theme-suggestions">
+              {themes.map((t) => <option key={t} value={t} />)}
+            </datalist>
+            <p className="text-xs text-muted-foreground">
+              Se imposti un tema, la storia includerà 3–5 parole del tuo vocabolario su quel tema da ripassare.
+            </p>
           </div>
 
           <div className="space-y-2">

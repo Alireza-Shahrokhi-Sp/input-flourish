@@ -42,6 +42,8 @@ type Story = {
   body: string;
   summary: string | null;
   parent_story_id: string | null;
+  target_word_ids: string[] | null;
+  theme_tag: string | null;
 };
 type Annotations = { tokens: Token[]; grammar: GrammarEntry[] };
 
@@ -52,6 +54,8 @@ function StoryPage() {
   const [story, setStory] = React.useState<Story | null>(null);
   const [ann, setAnn] = React.useState<Annotations | null>(null);
   const [savedLemmas, setSavedLemmas] = React.useState<Set<string>>(new Set());
+  const [targetLemmas, setTargetLemmas] = React.useState<Set<string>>(new Set());
+  const [targetIdByLemma, setTargetIdByLemma] = React.useState<Map<string, string>>(new Map());
   const [playing, setPlaying] = React.useState(false);
   const [continuing, setContinuing] = React.useState(false);
 
@@ -70,9 +74,23 @@ function StoryPage() {
       setAnn((a as Annotations | null) ?? { tokens: [], grammar: [] });
       const { data: vocab } = await supabase
         .from("vocab_items")
-        .select("lemma")
+        .select("id,lemma")
         .eq("user_id", user.id);
       setSavedLemmas(new Set((vocab ?? []).map((v: { lemma: string }) => v.lemma)));
+
+      const targetIds = (s as Story | null)?.target_word_ids ?? [];
+      if (targetIds && targetIds.length) {
+        const map = new Map<string, string>();
+        const lemmas = new Set<string>();
+        for (const v of (vocab ?? []) as { id: string; lemma: string }[]) {
+          if (targetIds.includes(v.id)) {
+            map.set(v.lemma.toLowerCase(), v.id);
+            lemmas.add(v.lemma.toLowerCase());
+          }
+        }
+        setTargetIdByLemma(map);
+        setTargetLemmas(lemmas);
+      }
     })();
   }, [id, user]);
 
@@ -106,6 +124,30 @@ function StoryPage() {
     setPlaying(true);
   };
 
+  const bumpEaseHarder = async (vocabId?: string) => {
+    if (!user || !vocabId) return;
+    const { data: existing } = await supabase
+      .from("srs_reviews")
+      .select("id,ease,interval_days,reps,lapses,due_at")
+      .eq("vocab_id", vocabId)
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (existing) {
+      const newEase = Math.max(1.3, Number(existing.ease ?? 2.5) - 0.15);
+      await supabase.from("srs_reviews").update({ ease: newEase }).eq("id", existing.id);
+    } else {
+      await supabase.from("srs_reviews").insert({
+        user_id: user.id,
+        vocab_id: vocabId,
+        ease: 2.35,
+        interval_days: 0,
+        reps: 0,
+        lapses: 0,
+        due_at: new Date().toISOString(),
+      });
+    }
+  };
+
   const saveVocab = async (tok: Token) => {
     if (!user || !tok.lemma) return;
     const lemma = tok.lemma.toLowerCase();
@@ -117,6 +159,8 @@ function StoryPage() {
       translation: tok.translation,
       first_story_id: id,
       first_seen_sentence: tok.surface,
+      cefr_level: story?.level ?? null,
+      theme_tag: story?.theme_tag ?? null,
     });
     if (error) {
       if (!error.message.includes("duplicate")) {
@@ -166,11 +210,13 @@ function StoryPage() {
                 const g = grammarByToken.get(t.i);
                 const isWord = /\p{L}/u.test(t.surface);
                 if (!isWord) return <span key={t.i}>{t.surface}</span>;
+                const lemmaKey = (t.lemma ?? t.surface).toLowerCase();
+                const isTarget = targetLemmas.has(lemmaKey);
                 return (
-                  <Popover key={t.i}>
+                  <Popover key={t.i} onOpenChange={(open) => { if (open && isTarget) bumpEaseHarder(targetIdByLemma.get(lemmaKey)); }}>
                     <PopoverTrigger asChild>
                       <span
-                        className={`word-tok ${g ? `grammar-mark ${g.is_stretch ? "stretch" : ""}` : ""}`}
+                        className={`word-tok ${isTarget ? "target-word" : ""} ${g ? `grammar-mark ${g.is_stretch ? "stretch" : ""}` : ""}`}
                       >
                         {t.surface}
                       </span>
