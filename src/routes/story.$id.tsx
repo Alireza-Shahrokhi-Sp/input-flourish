@@ -249,75 +249,12 @@ function StoryPage() {
 
         <article className="mt-8 font-body text-lg leading-relaxed text-ink">
           {tokenized ? (
-            <p className="whitespace-pre-wrap">
-              {ann.tokens.map((t) => {
-                const g = grammarByToken.get(t.i);
-                const isWord = /\p{L}/u.test(t.surface);
-                if (!isWord) return <span key={t.i}>{t.surface}</span>;
-                const lemmaKey = (t.lemma ?? t.surface).toLowerCase();
-                const isTarget = targetLemmas.has(lemmaKey);
-                return (
-                  <Popover key={t.i} onOpenChange={(open) => { if (open && isTarget) bumpEaseHarder(targetIdByLemma.get(lemmaKey)); }}>
-                    <PopoverTrigger asChild>
-                      <span
-                        className={`word-tok ${isTarget ? "target-word" : ""} ${g ? `grammar-mark ${g.is_stretch ? "stretch" : ""}` : ""}`}
-                      >
-                        {t.surface}
-                      </span>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-72">
-                      <div className="space-y-2">
-                        <div className="flex items-baseline justify-between gap-2">
-                          <span className="font-display text-xl">{t.lemma ?? t.surface}</span>
-                          {t.pos && (
-                            <span className="text-xs text-muted-foreground uppercase">{t.pos}</span>
-                          )}
-                        </div>
-                        {t.translation && (
-                          <p className="text-sm">{t.translation}</p>
-                        )}
-                        {t.note && (
-                          <p className="text-xs text-muted-foreground italic">{t.note}</p>
-                        )}
-                        <a
-                          href={`https://www.wordreference.com/iten/${encodeURIComponent((t.lemma ?? t.surface).toLowerCase())}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs underline text-terracotta hover:opacity-80"
-                        >
-                          Definizione & coniugazione su WordReference ↗
-                        </a>
-                        {g && (
-                          <div className={`mt-2 rounded-md p-2 text-xs ${g.is_stretch ? "bg-stretch/10 border border-stretch/30" : "bg-muted"}`}>
-                            <p className="font-semibold">{g.name}</p>
-                            <p className="mt-1">{g.explanation}</p>
-                          </div>
-                        )}
-                        {t.lemma && (
-                          <Button
-                            size="sm"
-                            variant={savedLemmas.has(t.lemma.toLowerCase()) ? "secondary" : "default"}
-                            className="w-full gap-1 mt-2"
-                            onClick={() => saveVocab(t)}
-                            disabled={savedLemmas.has(t.lemma.toLowerCase())}
-                          >
-                            {savedLemmas.has(t.lemma.toLowerCase()) ? (
-                              <><Check className="h-3 w-3" /> Salvato</>
-                            ) : (
-                              <><Plus className="h-3 w-3" /> Salva nel vocabolario</>
-                            )}
-                          </Button>
-                        )}
-                      </div>
-                    </PopoverContent>
-                  </Popover>
-                );
-              })}
-            </p>
+            renderParagraphs(ann.tokens, groupByToken, targetLemmas, targetIdByLemma, savedLemmas, saveVocab, bumpEaseHarder)
           ) : (
-            <p className="whitespace-pre-wrap">{story.body}</p>
+            renderPlainParagraphs(story.body)
           )}
         </article>
+
 
         {/* Grammar section */}
         {ann.grammar.length > 0 && (
