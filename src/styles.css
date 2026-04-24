@@ -129,18 +129,51 @@
 }
 
 /* Reader-specific decorations */
+
+/* Grammar group: a contiguous run of tokens belonging to one grammar entry
+   gets a SINGLE continuous underline. Use a solid bottom-border on the run
+   (start/middle/end) instead of per-word wavy underlines, so multi-word
+   structures read as one unit. Single-token entries ("only") keep a wavy
+   underline so single complex words are still visually distinct. */
 .grammar-mark {
+  cursor: pointer;
+}
+.grammar-mark.grammar-only {
   text-decoration: underline wavy var(--color-grammar);
   text-decoration-thickness: 1px;
   text-underline-offset: 4px;
-  cursor: pointer;
 }
-.grammar-mark.stretch {
+.grammar-mark.grammar-start,
+.grammar-mark.grammar-middle,
+.grammar-mark.grammar-end {
+  border-bottom: 2px solid var(--color-grammar);
+  padding-bottom: 1px;
+  background: color-mix(in oklab, var(--color-grammar) 6%, transparent);
+}
+.grammar-mark.grammar-start {
+  border-top-left-radius: 3px;
+  border-bottom-left-radius: 3px;
+  padding-left: 2px;
+}
+.grammar-mark.grammar-end {
+  border-top-right-radius: 3px;
+  border-bottom-right-radius: 3px;
+  padding-right: 2px;
+}
+
+.grammar-mark.stretch.grammar-only {
   text-decoration-color: var(--color-stretch);
   background: color-mix(in oklab, var(--color-stretch) 12%, transparent);
   border-radius: 2px;
   padding: 0 2px;
 }
+.grammar-mark.stretch.grammar-start,
+.grammar-mark.stretch.grammar-middle,
+.grammar-mark.stretch.grammar-end {
+  border-bottom-color: var(--color-stretch);
+  background: color-mix(in oklab, var(--color-stretch) 10%, transparent);
+}
+
 .word-tok {
   cursor: pointer;
   transition: background-color 120ms;
@@ -155,4 +188,25 @@
   border-radius: 2px;
   padding: 0 2px;
   font-weight: 600;
+}
+
+/* Dialogue formatting: clear separation between speaker turns,
+   with subtle left border + tinted color per speaker. Easy on the eyes. */
+.dialogue-line {
+  position: relative;
+  padding-left: 0.9rem;
+  border-left: 2px solid transparent;
+  margin-block: 0.35rem;
+}
+.dialogue-line.speaker-0 {
+  border-left-color: color-mix(in oklab, var(--color-primary) 60%, transparent);
+  color: color-mix(in oklab, var(--color-foreground) 90%, var(--color-primary) 10%);
+}
+.dialogue-line.speaker-1 {
+  border-left-color: color-mix(in oklab, var(--color-grammar) 55%, transparent);
+  color: color-mix(in oklab, var(--color-foreground) 90%, var(--color-grammar) 10%);
+}
+.dialogue-line.speaker-2 {
+  border-left-color: color-mix(in oklab, var(--color-stretch) 55%, transparent);
+  color: color-mix(in oklab, var(--color-foreground) 90%, var(--color-stretch) 10%);
 }
