@@ -224,6 +224,16 @@ function SettingsPage() {
             }}
           />
           {importing && <p className="text-xs text-muted-foreground">Importazione in corso…</p>}
+          <div className="pt-3 border-t border-border">
+            <h3 className="font-display text-base">Esporta per Anki</h3>
+            <p className="text-xs text-muted-foreground mt-1 mb-2">
+              Scarica un file <code>.txt</code> (TSV) con intestazioni Anki: importalo in
+              AnkiDroid o Anki Desktop. Include intervallo, ease, ripetizioni e tag.
+            </p>
+            <Button variant="outline" className="w-full" onClick={onExportAnki} disabled={exporting}>
+              {exporting ? "Esportando…" : "Scarica file Anki"}
+            </Button>
+          </div>
         </div>
 
         <div className="rounded-xl border border-border bg-card p-6">
