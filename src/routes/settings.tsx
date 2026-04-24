@@ -49,6 +49,76 @@ function SettingsPage() {
 
   const fileRef = React.useRef<HTMLInputElement>(null);
   const [importing, setImporting] = React.useState(false);
+  const [exporting, setExporting] = React.useState(false);
+
+  const tsvEscape = (s: string) => {
+    const v = (s ?? "").replace(/\r?\n/g, " ").replace(/\t/g, " ");
+    return /["]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v;
+  };
+
+  const onExportAnki = async () => {
+    if (!user) return;
+    setExporting(true);
+    try {
+      const { data: vocab, error } = await supabase
+        .from("vocab_items")
+        .select("id,lemma,translation,pos,notes,theme_tag,cefr_level,status")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+      if (!vocab || vocab.length === 0) {
+        toast.error("Nessuna parola da esportare");
+        return;
+      }
+      const { data: srs } = await supabase
+        .from("srs_reviews")
+        .select("vocab_id,interval_days,ease,reps,lapses,due_at")
+        .eq("user_id", user.id);
+      const srsMap = new Map<string, { interval_days: number; ease: number; reps: number; lapses: number; due_at: string }>();
+      for (const r of srs ?? []) srsMap.set(r.vocab_id, r);
+
+      // Anki "Notes in Plain Text" format with header directives
+      const header = [
+        "#separator:tab",
+        "#html:false",
+        "#columns:Front\tBack\tTags\tInterval\tEase\tReps\tLapses\tPOS\tNotes\tLevel",
+      ].join("\n");
+      const lines = vocab.map((v) => {
+        const s = srsMap.get(v.id);
+        const tags = [v.theme_tag, v.status, v.cefr_level].filter(Boolean).join(" ");
+        const ease = s ? Math.round((Number(s.ease) || 2.5) * 1000) : 2500;
+        const ivl = s ? Math.round(Number(s.interval_days) || 0) : 0;
+        return [
+          tsvEscape(v.lemma),
+          tsvEscape(v.translation ?? ""),
+          tsvEscape(tags),
+          String(ivl),
+          String(ease),
+          String(s?.reps ?? 0),
+          String(s?.lapses ?? 0),
+          tsvEscape(v.pos ?? ""),
+          tsvEscape(v.notes ?? ""),
+          tsvEscape(v.cefr_level ?? ""),
+        ].join("\t");
+      });
+      const content = header + "\n" + lines.join("\n") + "\n";
+      const blob = new Blob([content], { type: "text/tab-separated-values;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      const ts = new Date().toISOString().slice(0, 10);
+      a.href = url;
+      a.download = `letture-vocab-${ts}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast.success(`Esportate ${vocab.length} parole`);
+    } catch (e) {
+      toast.error((e as Error).message || "Errore esportazione");
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const onImportFile = async (file: File) => {
     if (!user) return;
