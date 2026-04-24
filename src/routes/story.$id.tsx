@@ -124,30 +124,8 @@ function StoryPage() {
     return m;
   }, [ann]);
 
-  // Split body into dialogue-aware paragraphs.
-  // Detects lines starting with — / – / - / " / « as dialogue, and assigns alternating
-  // speakers based on order of appearance per paragraph block.
-  const paragraphs = React.useMemo(() => {
-    if (!story) return [] as { kind: "narration" | "dialogue"; speaker: number; tokenRange: [number, number] | null; text: string | null }[];
-    const text = story.body;
-    const lines = text.split(/\n+/).map((l) => l.trim()).filter(Boolean);
-    let speakerCycle = 0;
-    const speakerMap = new Map<string, number>();
-    return lines.map((line) => {
-      const isDialogue = /^[—–\-"«„"]/.test(line);
-      let speaker = 0;
-      if (isDialogue) {
-        // Try to use the leading dash group as a key; alternate per paragraph otherwise
-        const key = line[0];
-        if (!speakerMap.has(key + speakerCycle)) {
-          speakerMap.set(key + speakerCycle, speakerCycle % 3);
-        }
-        speaker = speakerCycle % 3;
-        speakerCycle++;
-      }
-      return { kind: isDialogue ? "dialogue" as const : "narration" as const, speaker, tokenRange: null, text: line };
-    });
-  }, [story]);
+
+
 
   const speak = () => {
     if (!story) return;
