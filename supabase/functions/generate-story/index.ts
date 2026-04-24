@@ -140,9 +140,11 @@ ISTRUZIONI TOKENIZZAZIONE
 
 ISTRUZIONI GRAMMATICA
 - Includi TUTTI i punti grammaticali rilevanti che compaiono nel testo.
-- "complexity": "complex" SOLO per strutture non ovvie per il livello (congiuntivo, condizionale, ipotetiche, pronominali ne/ci, si passivante, gerundi, participi assoluti, ecc.).
+- "complexity": "complex" SOLO per strutture non ovvie per il livello (congiuntivo, condizionale, ipotetiche, pronominali ne/ci, si passivante, gerundi, participi assoluti, verbi pronominali tipo "andarsene/farcela/cavarsela", verbi con particelle separate dal clitico, ecc.).
 - "is_stretch": true SOLO per gli elementi sopra livello che hai introdotto.
-- "token_indices" punta ai token in cui la struttura si manifesta nel body.`;
+- "token_indices": IMPORTANTISSIMO — elenca TUTTI E SOLI i token che appartengono a UNA SINGOLA occorrenza della struttura, come UN GRUPPO UNICO. Se la stessa struttura ricorre più volte, crea VOCI SEPARATE in "grammar" (una per occorrenza), ognuna con il proprio gruppo di token_indices. NON mettere ogni parola come voce separata, e NON unire occorrenze diverse in un solo gruppo.
+- Per verbi pronominali / verbi + particelle clitiche separate (es. "ne ho parlato", "ci penso io", "se ne va", "gliel'ho detto"): includi NEL gruppo TUTTI i token coinvolti (clitico + verbo + ausiliare), anche se non sono adiacenti, così che lo studente veda chiaramente che funzionano insieme.
+- Per strutture multi-parola (passato prossimo "ho mangiato", congiuntivo composto, periodo ipotetico "se avessi … sarei …"): includi ausiliare + participio / entrambe le clausole nello STESSO gruppo.`;
 
     const resp = await callGeminiWithRetry(apiKey, sys, user_prompt);
 
