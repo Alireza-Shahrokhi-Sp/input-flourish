@@ -307,3 +307,182 @@ function GrammarCard({ g, stretch }: { g: GrammarEntry; stretch?: boolean }) {
     </div>
   );
 }
+
+type GroupInfoLite = { g: GrammarEntry; gid: number; pos: "start" | "middle" | "end" | "only" };
+
+function renderPlainParagraphs(body: string) {
+  const paras = splitParagraphs(body);
+  return (
+    <div className="space-y-4">
+      {paras.map((p, i) => (
+        <p
+          key={i}
+          className={
+            p.kind === "dialogue"
+              ? `dialogue-line speaker-${p.speaker} whitespace-pre-wrap`
+              : "whitespace-pre-wrap"
+          }
+        >
+          {p.text}
+        </p>
+      ))}
+    </div>
+  );
+}
+
+function renderParagraphs(
+  tokens: Token[],
+  groupByToken: Map<number, GroupInfoLite>,
+  targetLemmas: Set<string>,
+  targetIdByLemma: Map<string, string>,
+  savedLemmas: Set<string>,
+  saveVocab: (t: Token) => void,
+  bumpEaseHarder: (id?: string) => void,
+) {
+  // Group tokens into paragraphs by newline tokens.
+  const paragraphs: Token[][] = [];
+  let cur: Token[] = [];
+  for (const t of tokens) {
+    if (t.surface.includes("\n")) {
+      const parts = t.surface.split("\n");
+      // text before first newline
+      if (parts[0]) cur.push({ ...t, surface: parts[0] });
+      paragraphs.push(cur);
+      cur = [];
+      for (let i = 1; i < parts.length - 1; i++) {
+        if (parts[i]) paragraphs.push([{ ...t, surface: parts[i] }]);
+        else paragraphs.push([]);
+      }
+      const tail = parts[parts.length - 1];
+      if (tail) cur.push({ ...t, surface: tail });
+    } else {
+      cur.push(t);
+    }
+  }
+  if (cur.length) paragraphs.push(cur);
+
+  // Detect dialogue + assign rotating speaker color (max 3 distinct).
+  let speakerIdx = 0;
+  let lastWasDialogue = false;
+  return (
+    <div className="space-y-4">
+      {paragraphs
+        .filter((p) => p.some((t) => t.surface.trim().length > 0))
+        .map((paraTokens, pIdx) => {
+          const firstWord = paraTokens.find((t) => t.surface.trim().length > 0)?.surface.trim() ?? "";
+          const isDialogue = /^[—–\-"«„"]/.test(firstWord);
+          let speaker = 0;
+          if (isDialogue) {
+            if (!lastWasDialogue) speakerIdx = 0;
+            speaker = speakerIdx % 3;
+            speakerIdx++;
+            lastWasDialogue = true;
+          } else {
+            lastWasDialogue = false;
+          }
+          return (
+            <p
+              key={pIdx}
+              className={
+                isDialogue
+                  ? `dialogue-line speaker-${speaker}`
+                  : ""
+              }
+            >
+              {paraTokens.map((t, k) => {
+                const gi = groupByToken.get(t.i);
+                const isWord = /\p{L}/u.test(t.surface);
+                if (!isWord) return <span key={`${pIdx}-${k}`}>{t.surface}</span>;
+                const lemmaKey = (t.lemma ?? t.surface).toLowerCase();
+                const isTarget = targetLemmas.has(lemmaKey);
+                const grammarClass = gi
+                  ? `grammar-mark grammar-${gi.pos} ${gi.g.is_stretch ? "stretch" : ""}`
+                  : "";
+                return (
+                  <Popover
+                    key={`${pIdx}-${k}`}
+                    onOpenChange={(open) => {
+                      if (open && isTarget) bumpEaseHarder(targetIdByLemma.get(lemmaKey));
+                    }}
+                  >
+                    <PopoverTrigger asChild>
+                      <span
+                        className={`word-tok ${isTarget ? "target-word" : ""} ${grammarClass}`}
+                      >
+                        {t.surface}
+                      </span>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-72">
+                      <div className="space-y-2">
+                        <div className="flex items-baseline justify-between gap-2">
+                          <span className="font-display text-xl">{t.lemma ?? t.surface}</span>
+                          {t.pos && (
+                            <span className="text-xs text-muted-foreground uppercase">{t.pos}</span>
+                          )}
+                        </div>
+                        {t.translation && <p className="text-sm">{t.translation}</p>}
+                        {t.note && <p className="text-xs text-muted-foreground italic">{t.note}</p>}
+                        <a
+                          href={`https://www.wordreference.com/iten/${encodeURIComponent((t.lemma ?? t.surface).toLowerCase())}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs underline hover:opacity-80"
+                        >
+                          Definizione & coniugazione su WordReference ↗
+                        </a>
+                        {gi && (
+                          <div className={`mt-2 rounded-md p-2 text-xs ${gi.g.is_stretch ? "bg-stretch/10 border border-stretch/30" : "bg-muted"}`}>
+                            <p className="font-semibold">{gi.g.name}</p>
+                            <p className="mt-1">{gi.g.explanation}</p>
+                            {gi.g.token_indices && gi.g.token_indices.length > 1 && (
+                              <p className="mt-1 text-[10px] uppercase tracking-wide text-muted-foreground">
+                                Struttura di {gi.g.token_indices.length} parole — sottolineata insieme
+                              </p>
+                            )}
+                          </div>
+                        )}
+                        {t.lemma && (
+                          <Button
+                            size="sm"
+                            variant={savedLemmas.has(t.lemma.toLowerCase()) ? "secondary" : "default"}
+                            className="w-full gap-1 mt-2"
+                            onClick={() => saveVocab(t)}
+                            disabled={savedLemmas.has(t.lemma.toLowerCase())}
+                          >
+                            {savedLemmas.has(t.lemma.toLowerCase()) ? (
+                              <><Check className="h-3 w-3" /> Salvato</>
+                            ) : (
+                              <><Plus className="h-3 w-3" /> Salva nel vocabolario</>
+                            )}
+                          </Button>
+                        )}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                );
+              })}
+            </p>
+          );
+        })}
+    </div>
+  );
+}
+
+function splitParagraphs(body: string) {
+  const lines = body.split(/\n+/).map((l) => l.trim()).filter(Boolean);
+  let speakerIdx = 0;
+  let lastWasDialogue = false;
+  return lines.map((text) => {
+    const isDialogue = /^[—–\-"«„"]/.test(text);
+    let speaker = 0;
+    if (isDialogue) {
+      if (!lastWasDialogue) speakerIdx = 0;
+      speaker = speakerIdx % 3;
+      speakerIdx++;
+      lastWasDialogue = true;
+    } else {
+      lastWasDialogue = false;
+    }
+    return { kind: isDialogue ? ("dialogue" as const) : ("narration" as const), speaker, text };
+  });
+}
