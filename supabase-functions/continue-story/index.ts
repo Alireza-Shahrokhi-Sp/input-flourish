@@ -84,11 +84,13 @@ OUTPUT (stesso schema della prima generazione):
   "body": "Il testo completo del capitolo.",
   "tokens": [{ "i": 0, "surface": "...", "lemma": "...", "pos": "...", "translation": "..." }],
   "grammar": [{ "name": "...", "explanation": "...", "example_sentence": "...", "extra_examples": ["..."], "complexity": "simple|complex", "is_stretch": true|false, "token_indices": [0] }],
-  "expressions": [{ "token_indices": [5, 6, 7], "lemma": "forma di citazione", "pos": "locuzione|verbo pronominale|espressione idiomatica|collocazione", "meaning": "English meaning", "note": "structural explanation" }]
+  "expressions": [{ "token_indices": [5, 6, 7], "lemma": "forma di citazione", "pos": "locuzione|verbo pronominale|espressione idiomatica|collocazione", "meaning": "English meaning", "note": "structural explanation" }],
+  "cultural_notes": [{ "token_indices": [15, 16], "phrase": "testo esatto dal body", "lemma": "forma di citazione", "category": "proverbio|slang|modo di dire|gergo giovanile|riferimento culturale|interiezione", "meaning": "English meaning", "context": "Rich cultural explanation: origin, history, register, 2-4 sentences in English." }]
 }
 
 Tokens coprono l'intero body in ordine (spazi e punteggiatura inclusi). Grammar: complex solo per strutture non ovvie; is_stretch solo per gli elementi sopra livello introdotti.
-Expressions: includi SOLO espressioni multi-parola significative (verbi pronominali, locuzioni fisse, idiomi, collocazioni non letterali). 2-5 per storia. token_indices puntano ai token coinvolti.`;
+Expressions: includi SOLO espressioni multi-parola significative (verbi pronominali, locuzioni fisse, idiomi, collocazioni non letterali). 2-5 per storia. token_indices puntano ai token coinvolti.
+Cultural notes: inserisci 1-2 elementi culturali italiani (slang, proverbi, modi di dire regionali, gergo giovanile, riferimenti culturali). "context" spiega l'origine, la storia, quando/dove si usa — in inglese, 2-4 frasi. Array vuoto se nessun elemento culturale.`;
 
     const resp = await callGeminiWithRetry(apiKey, sys, userPrompt);
     if (!resp.ok) {
@@ -124,6 +126,7 @@ Expressions: includi SOLO espressioni multi-parola significative (verbi pronomin
       story_id: row.id, user_id: user.id,
       tokens: parsed.tokens ?? [], grammar: parsed.grammar ?? [],
       expressions: parsed.expressions ?? [],
+      cultural_notes: parsed.cultural_notes ?? [],
     });
     return json({ story_id: row.id });
   } catch (e) {

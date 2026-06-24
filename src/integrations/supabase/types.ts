@@ -162,6 +162,8 @@ export type Database = {
       story_annotations: {
         Row: {
           created_at: string
+          cultural_notes: Json
+          expressions: Json
           grammar: Json
           id: string
           story_id: string
@@ -170,6 +172,8 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          cultural_notes?: Json
+          expressions?: Json
           grammar?: Json
           id?: string
           story_id: string
@@ -178,6 +182,8 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          cultural_notes?: Json
+          expressions?: Json
           grammar?: Json
           id?: string
           story_id?: string

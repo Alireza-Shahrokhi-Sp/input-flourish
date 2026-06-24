@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import {
   Popover, PopoverContent, PopoverTrigger,
 } from "@/components/ui/popover";
-import { Plus, Check, BookOpen } from "lucide-react";
+import { Plus, Check, BookOpen, Landmark } from "lucide-react";
 import { toast } from "sonner";
 import { lemmaLevel } from "@/lib/cefr";
 import { segmentSentences } from "@/lib/speech";
@@ -55,7 +55,15 @@ type ExpressionEntry = {
   meaning: string | null;
   note: string | null;
 };
-type Annotations = { tokens: Token[]; grammar: GrammarEntry[]; expressions: ExpressionEntry[] };
+type CulturalNote = {
+  token_indices: number[];
+  phrase: string;
+  lemma: string;
+  category: string;
+  meaning: string | null;
+  context: string;
+};
+type Annotations = { tokens: Token[]; grammar: GrammarEntry[]; expressions: ExpressionEntry[]; cultural_notes: CulturalNote[] };
 
 function StoryPage() {
   const { id } = Route.useParams();
@@ -82,10 +90,10 @@ function StoryPage() {
     (async () => {
       const [{ data: s }, { data: a }] = await Promise.all([
         supabase.from("stories").select("*").eq("id", id).maybeSingle(),
-        supabase.from("story_annotations").select("tokens,grammar,expressions").eq("story_id", id).maybeSingle(),
+        supabase.from("story_annotations").select("tokens,grammar,expressions,cultural_notes").eq("story_id", id).maybeSingle(),
       ]);
       setStory(s as Story | null);
-      setAnn((a as Annotations | null) ?? { tokens: [], grammar: [], expressions: [] });
+      setAnn((a as Annotations | null) ?? { tokens: [], grammar: [], expressions: [], cultural_notes: [] });
       const { data: vocab } = await supabase
         .from("vocab_items")
         .select("id,lemma")
@@ -149,6 +157,22 @@ function StoryPage() {
         const pos: ExprInfo["pos"] =
           idxs.length === 1 ? "only" : k === 0 ? "start" : k === idxs.length - 1 ? "end" : "middle";
         m.set(idxs[k], { expr, pos });
+      }
+    }
+    return m;
+  }, [ann]);
+
+  type CulturalInfo = { note: CulturalNote; pos: "start" | "middle" | "end" | "only" };
+  const culturalByToken = React.useMemo(() => {
+    const m = new Map<number, CulturalInfo>();
+    if (!ann) return m;
+    for (const note of ann.cultural_notes ?? []) {
+      const idxs = [...(note.token_indices ?? [])].sort((a, b) => a - b);
+      if (!idxs.length) continue;
+      for (let k = 0; k < idxs.length; k++) {
+        const pos: CulturalInfo["pos"] =
+          idxs.length === 1 ? "only" : k === 0 ? "start" : k === idxs.length - 1 ? "end" : "middle";
+        m.set(idxs[k], { note, pos });
       }
     }
     return m;
@@ -266,7 +290,7 @@ function StoryPage() {
 
         <article className="mt-8 font-body text-lg leading-relaxed text-ink">
           {tokenized ? (
-            renderParagraphs(ann.tokens, groupByToken, exprByToken, targetLemmas, targetIdByLemma, savedLemmas, saveVocab, saveExpression, bumpEaseHarder, activeSentence, sentences)
+            renderParagraphs(ann.tokens, groupByToken, exprByToken, culturalByToken, targetLemmas, targetIdByLemma, savedLemmas, saveVocab, saveExpression, bumpEaseHarder, activeSentence, sentences)
           ) : (
             renderPlainParagraphs(story.body, activeSentence, sentences)
           )}
@@ -302,6 +326,27 @@ function StoryPage() {
                       <><Plus className="h-3 w-3" /> Salva</>
                     )}
                   </Button>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Cultural notes section */}
+        {(ann.cultural_notes ?? []).length > 0 && (
+          <section className="mt-10 rounded-xl border border-cultural/20 bg-cultural/5 p-5">
+            <h2 className="font-display text-2xl flex items-center gap-2">
+              <Landmark className="h-5 w-5 text-cultural" /> Cultura italiana
+            </h2>
+            <div className="mt-4 space-y-4">
+              {(ann.cultural_notes ?? []).map((cn, i) => (
+                <div key={i} className="rounded-lg border border-cultural/20 bg-card p-4">
+                  <div className="flex items-baseline gap-2 flex-wrap">
+                    <span className="font-display text-lg">{cn.lemma}</span>
+                    <span className="text-[10px] font-medium uppercase tracking-wide rounded-full bg-cultural/15 text-cultural px-2 py-0.5">{cn.category}</span>
+                  </div>
+                  {cn.meaning && <p className="mt-1 text-sm">{cn.meaning}</p>}
+                  <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{cn.context}</p>
                 </div>
               ))}
             </div>
@@ -384,6 +429,7 @@ function GrammarCard({ g, stretch }: { g: GrammarEntry; stretch?: boolean }) {
 
 type GroupInfoLite = { g: GrammarEntry; gid: number; pos: "start" | "middle" | "end" | "only" };
 type ExprInfoLite = { expr: ExpressionEntry; pos: "start" | "middle" | "end" | "only" };
+type CulturalInfoLite = { note: CulturalNote; pos: "start" | "middle" | "end" | "only" };
 
 function renderPlainParagraphs(
   body: string,
@@ -416,6 +462,7 @@ function renderParagraphs(
   tokens: Token[],
   groupByToken: Map<number, GroupInfoLite>,
   exprByToken: Map<number, ExprInfoLite>,
+  culturalByToken: Map<number, CulturalInfoLite>,
   targetLemmas: Set<string>,
   targetIdByLemma: Map<string, string>,
   savedLemmas: Set<string>,
@@ -480,8 +527,27 @@ function renderParagraphs(
               {paraTokens.map((t, k) => {
                 const gi = groupByToken.get(t.i);
                 const ei = exprByToken.get(t.i);
+                const ci = culturalByToken.get(t.i);
                 const isWord = /\p{L}/u.test(t.surface);
-                if (!isWord) return <span key={`${pIdx}-${k}`}>{t.surface}</span>;
+                if (!isWord) {
+                  const prevTok = k > 0 ? paraTokens[k - 1] : null;
+                  const nextTok = k < paraTokens.length - 1 ? paraTokens[k + 1] : null;
+                  const prevGi = prevTok ? groupByToken.get(prevTok.i) : undefined;
+                  const nextGi = nextTok ? groupByToken.get(nextTok.i) : undefined;
+                  const prevEi = prevTok ? exprByToken.get(prevTok.i) : undefined;
+                  const nextEi = nextTok ? exprByToken.get(nextTok.i) : undefined;
+                  const prevCi = prevTok ? culturalByToken.get(prevTok.i) : undefined;
+                  const nextCi = nextTok ? culturalByToken.get(nextTok.i) : undefined;
+                  const bridgeGrammar = prevGi && nextGi && prevGi.gid === nextGi.gid;
+                  const bridgeExpr = prevEi && nextEi && prevEi.expr === nextEi.expr;
+                  const bridgeCultural = prevCi && nextCi && prevCi.note === nextCi.note;
+                  const bridgeClass = [
+                    bridgeGrammar ? `grammar-mark grammar-middle ${prevGi!.g.is_stretch ? "stretch" : ""}` : "",
+                    bridgeExpr ? "expr-mark expr-middle" : "",
+                    bridgeCultural ? "cultural-mark cultural-middle" : "",
+                  ].filter(Boolean).join(" ");
+                  return <span key={`${pIdx}-${k}`} className={bridgeClass || undefined}>{t.surface}</span>;
+                }
                 const lemmaKey = (t.lemma ?? t.surface).toLowerCase();
                 const isTarget = targetLemmas.has(lemmaKey);
                 const grammarClass = gi
@@ -489,6 +555,9 @@ function renderParagraphs(
                   : "";
                 const exprClass = ei
                   ? `expr-mark expr-${ei.pos}`
+                  : "";
+                const culturalClass = ci
+                  ? `cultural-mark cultural-${ci.pos}`
                   : "";
                 return (
                   <Popover
@@ -499,7 +568,7 @@ function renderParagraphs(
                   >
                     <PopoverTrigger asChild>
                       <span
-                        className={`word-tok ${isTarget ? "target-word" : ""} ${grammarClass} ${exprClass}`}
+                        className={`word-tok ${isTarget ? "target-word" : ""} ${grammarClass} ${exprClass} ${culturalClass}`}
                       >
                         {t.surface}
                       </span>
@@ -555,6 +624,17 @@ function renderParagraphs(
                                 <><BookOpen className="h-3 w-3" /> Salva espressione</>
                               )}
                             </Button>
+                          </div>
+                        )}
+                        {ci && (
+                          <div className="mt-2 rounded-md p-2 text-xs bg-cultural/10 border border-cultural/30">
+                            <div className="flex items-baseline gap-1">
+                              <Landmark className="h-3 w-3 text-cultural shrink-0" />
+                              <p className="font-semibold">{ci.note.lemma}</p>
+                              <span className="text-[9px] uppercase text-muted-foreground ml-auto">{ci.note.category}</span>
+                            </div>
+                            {ci.note.meaning && <p className="mt-1">{ci.note.meaning}</p>}
+                            <p className="mt-1 text-muted-foreground leading-relaxed">{ci.note.context}</p>
                           </div>
                         )}
                         {t.lemma && (

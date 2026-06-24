@@ -114,6 +114,9 @@ REGOLE
 - Ogni PAROLA BERSAGLIO va usata almeno DUE volte, in frasi diverse e in contesti differenti, per rinforzare l'acquisizione.
 - Non usare più di 1-2 elementi sopra livello, e SOLO quelli ammessi sopra.
 - Nessuna premessa, nessun titolo nel corpo: solo la storia.
+- COLORE CULTURALE: inserisci nel testo elementi culturali italiani autentici.
+  ${level <= "A2" ? "A1-A2: 0-1 elemento (opzionale). Scegli tra: interiezioni comuni (mamma mia!, magari!, boh), saluti/formule (ciao vs arrivederci, buon appetito, in bocca al lupo)." : level === "B1" ? "B1: 1-2 elementi. Scegli tra: proverbi semplici, espressioni regionali comuni, slang informale (che figata, basta, tipo), interiezioni." : "B2+: 2-3 elementi. Scegli tra: gergo giovanile/Gen Z (cringe, shoppare, droppare, spaccare), proverbi meno noti, modi di dire regionali, riferimenti culturali (fare la bella figura, il dolce far niente, la passeggiata)."}
+  L'elemento deve essere NATURALE nel contesto — mai forzato. La frase circostante deve rendere il significato intuibile anche senza spiegazione.
 
 OUTPUT (JSON)
 {
@@ -148,6 +151,16 @@ OUTPUT (JSON)
       "meaning": "traduzione/significato in inglese, conciso",
       "note": "spiegazione strutturale breve per uno studente (1-2 frasi in inglese)"
     }
+  ],
+  "cultural_notes": [
+    {
+      "token_indices": [15, 16, 17],
+      "phrase": "il testo esatto come appare nel body",
+      "lemma": "forma di citazione dell'espressione",
+      "category": "proverbio | slang | modo di dire | gergo giovanile | riferimento culturale | interiezione",
+      "meaning": "traduzione/significato in inglese, conciso",
+      "context": "Rich cultural explanation in English: origin, history, when/where Italians use it, register, regional ties. 2-4 sentences for a curious language learner."
+    }
   ]
 }
 
@@ -177,7 +190,19 @@ ISTRUZIONI ESPRESSIONI
 - "token_indices": gli indici ESATTI dei token nel body che formano l'espressione (come per grammar). Anche se i token non sono tutti adiacenti (es. "ce la faccio" con altri token in mezzo), elenca tutti quelli coinvolti.
 - "lemma": forma di citazione all'infinito (verbi pronominali con particelle: "andarsene" non "andare"; "farcela" non "fare").
 - "note": spiega la STRUTTURA (es. "ce + la + fare: pronominal verb where 'ce' replaces 'ci' before 'la'; means to manage/succeed"). Non ripetere il significato.
-- Punta a 2-5 espressioni per storia (dipende dal livello e contenuto). A1 potrebbe averne 1-2, B2 potrebbe averne 4-5. Se non ce ne sono nel testo, lascia l'array vuoto.`;
+- Punta a 2-5 espressioni per storia (dipende dal livello e contenuto). A1 potrebbe averne 1-2, B2 potrebbe averne 4-5. Se non ce ne sono nel testo, lascia l'array vuoto.
+
+ISTRUZIONI COLORE CULTURALE
+- "cultural_notes" contiene gli elementi culturali italiani che hai inserito nel testo.
+- "category": usa esattamente una tra: "proverbio", "slang", "modo di dire", "gergo giovanile", "riferimento culturale", "interiezione".
+- "context": questa è la parte PIÙ IMPORTANTE. Non ripetere il significato. Spiega in inglese semplice (2-4 frasi):
+  (a) PERCHÉ gli italiani lo dicono — l'origine, la storia, l'aneddoto dietro.
+  (b) QUANDO e DOVE si usa — registro (formale/informale/giovanile), generazione, regione se applicabile.
+  (c) Curiosità culturali che aiutino lo studente a capire l'Italia vera, non quella dei libri.
+  Sii specifico e interessante, come un amico italiano che spiega la sua cultura.
+- "token_indices": come per grammar/expressions, gli indici esatti dei token coinvolti nel body.
+- "phrase": il testo ESATTO come appare nel body (forma flessa, non di citazione).
+- Se non hai inserito elementi culturali (possibile per A1-A2), lascia l'array vuoto.`;
 
     // --- Generation + deterministic density verification loop ---
     // CLAUDE.md mandates a deterministic check on the LLM output (LLMs cannot
@@ -292,6 +317,7 @@ ISTRUZIONI ESPRESSIONI
       tokens: parsed.tokens ?? [],
       grammar: parsed.grammar ?? [],
       expressions: parsed.expressions ?? [],
+      cultural_notes: parsed.cultural_notes ?? [],
     });
 
     return json({
@@ -362,7 +388,7 @@ type Token = {
 };
 type ParsedStory = {
   title: string; summary?: string; topic?: string; body: string;
-  tokens?: Token[]; grammar?: unknown[]; expressions?: unknown[];
+  tokens?: Token[]; grammar?: unknown[]; expressions?: unknown[]; cultural_notes?: unknown[];
 };
 
 type DensityResult = {

@@ -1,5 +1,27 @@
 # Executive Summary
 
+## 2026-06-24 — Cultural Color in Story Generation
+
+**What:** Stories now weave in authentic Italian cultural elements — slang, proverbs, regional expressions, Gen Z language, cultural references — with rich explanatory notes. Scales with level: A1-A2 gets 0-1 (optional), B1 gets 1-2, B2+ gets 2-3.
+
+**Why:** Textbook Italian misses the cultural richness learners encounter in real conversations, TV, and social media. Cultural notes bridge classroom Italian and how Italians actually speak, teaching the "why" behind expressions.
+
+### Changes
+
+- **Generation prompts** (`generate-story`, `continue-story`): New `cultural_notes` array in JSON output. Each note has `phrase`, `lemma`, `category` (proverbio/slang/modo di dire/gergo giovanile/riferimento culturale/interiezione), `meaning`, and a rich `context` field explaining origin, history, register, and when/where Italians use it.
+- **Story reader** (`story.$id.tsx`): Cultural tokens highlighted with dotted amber underline inline. Token popover shows cultural context card. New "Cultura italiana" section below expressions with category badges and rich context paragraphs.
+- **CSS** (`styles.css`): New `--color-cultural` token (warm amber) + `.cultural-mark` classes (dotted underline, distinct from grammar solid and expression dashed).
+- **Supabase types** (`types.ts`): Added `expressions` and `cultural_notes` to `story_annotations` table type.
+- **DB migration**: `ALTER TABLE story_annotations ADD COLUMN cultural_notes jsonb DEFAULT '[]'::jsonb;`
+- **Read-only**: Cultural notes are educational context only — not saved to SRS vocab.
+
+### Visual distinction of inline marks
+- Grammar: **solid** underline (olive)
+- Expressions: **dashed** underline (terracotta)
+- Cultural: **dotted** underline (amber)
+
+---
+
 ## 2026-06-24 — Real Shadowing Mode + LLM-Detected Expressions
 
 **What:** Two major features: (1) sentence-by-sentence shadowing player replacing the broken whole-body TTS, (2) LLM-detected multi-word expressions in stories with inline highlighting and one-click save.
