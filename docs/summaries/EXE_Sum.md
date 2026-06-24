@@ -2,13 +2,13 @@
 
 ## 2026-06-24 — Profilo della lingua italiana CEFR Lexicon Scraper + Integration
 
-**What:** Created a standalone Python scraper (`profilo-scraper/`) that extracts the complete A1–B2 vocabulary lists from the Università per Stranieri di Perugia's "Profilo della lingua italiana" website and outputs a structured JSON lexicon. Then wired it into the density verifier as a drop-in replacement for the old `it_m3.xlsx`-derived lexicon.
+**What:** Created a standalone Python scraper (`scripts/`) that extracts the complete A1–B2 vocabulary lists from the Università per Stranieri di Perugia's "Profilo della lingua italiana" website and outputs a structured JSON lexicon. Then wired it into the density verifier as a drop-in replacement for the old `it_m3.xlsx`-derived lexicon.
 
 **Why:** The existing `it_m3.xlsx` lexicon (5,035 lemmas from a translator word list) had pedagogically unintuitive CEFR levels (e.g., "gatto" at B2, "cane" at B1). The Profilo lists are a standard pedagogical CEFR source designed for Italian language learners, making them a better fit for the i+1 comprehension rule in the DCI platform.
 
 ### Part 1: Scraper
 
-**Output:** `profilo-scraper/data/profilo_lexicon.json` (rich schema, 227 KB)
+**Output:** `scripts/data/profilo_lexicon.json` (rich schema, 227 KB)
 
 - **2,127 unique lemmas**, **2,386 entries** (after dedup to lowest CEFR level per word+POS)
 - A1: 543, A2: 662, B1: 578, B2: 603 entries

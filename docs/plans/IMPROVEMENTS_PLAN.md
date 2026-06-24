@@ -734,4 +734,4 @@ Commit each improvement separately with a clear message. Run `npm run lint && np
 ## Additional completed work (outside this plan)
 
 ### CEFR Lexicon replacement (2026-06-24)
-Replaced the `it_m3.xlsx`-derived CEFR lexicon (5,035 translator-corpus entries) with a scraped pedagogical lexicon from "Profilo della lingua italiana" (2,127 entries, A1–B2). Drop-in replacement — same flat JSON format, no code changes to `lexicon.ts` or `index.ts`. Tests updated. See [EXE_Sum.md](../summaries/EXE_Sum.md) and the `profilo-scraper/` directory at project root.
+Replaced the `it_m3.xlsx`-derived CEFR lexicon (5,035 translator-corpus entries) with a scraped pedagogical lexicon from "Profilo della lingua italiana" (2,127 entries, A1–B2). Drop-in replacement — same flat JSON format, no code changes to `lexicon.ts` or `index.ts`. Tests updated. See [EXE_Sum.md](../summaries/EXE_Sum.md) and the `scripts/` directory at project root.
