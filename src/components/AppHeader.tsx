@@ -1,7 +1,7 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { BookOpen, Sparkles, LogOut, Brain, Settings as Cog, Library } from "lucide-react";
+import { BookOpen, Sparkles, LogOut, Brain, Settings as Cog, Library, BarChart3 } from "lucide-react";
 
 export function AppHeader() {
   const { user, signOut } = useAuth();
@@ -27,6 +27,12 @@ export function AppHeader() {
                 <Button variant="ghost" size="sm" className="gap-1">
                   <Brain className="h-4 w-4" />
                   <span className="hidden sm:inline">Vocabolario</span>
+                </Button>
+              </Link>
+              <Link to="/stats">
+                <Button variant="ghost" size="sm" className="gap-1">
+                  <BarChart3 className="h-4 w-4" />
+                  <span className="hidden sm:inline">Statistiche</span>
                 </Button>
               </Link>
               <Link to="/generate">

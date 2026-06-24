@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as VocabRouteImport } from './routes/vocab'
+import { Route as StatsRouteImport } from './routes/stats'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ReviewRouteImport } from './routes/review'
 import { Route as LibraryRouteImport } from './routes/library'
@@ -21,6 +22,11 @@ import { Route as StoryIdRouteImport } from './routes/story.$id'
 const VocabRoute = VocabRouteImport.update({
   id: '/vocab',
   path: '/vocab',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StatsRoute = StatsRouteImport.update({
+  id: '/stats',
+  path: '/stats',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsRoute = SettingsRouteImport.update({
@@ -66,6 +72,7 @@ export interface FileRoutesByFullPath {
   '/library': typeof LibraryRoute
   '/review': typeof ReviewRoute
   '/settings': typeof SettingsRoute
+  '/stats': typeof StatsRoute
   '/vocab': typeof VocabRoute
   '/story/$id': typeof StoryIdRoute
 }
@@ -76,6 +83,7 @@ export interface FileRoutesByTo {
   '/library': typeof LibraryRoute
   '/review': typeof ReviewRoute
   '/settings': typeof SettingsRoute
+  '/stats': typeof StatsRoute
   '/vocab': typeof VocabRoute
   '/story/$id': typeof StoryIdRoute
 }
@@ -87,6 +95,7 @@ export interface FileRoutesById {
   '/library': typeof LibraryRoute
   '/review': typeof ReviewRoute
   '/settings': typeof SettingsRoute
+  '/stats': typeof StatsRoute
   '/vocab': typeof VocabRoute
   '/story/$id': typeof StoryIdRoute
 }
@@ -99,6 +108,7 @@ export interface FileRouteTypes {
     | '/library'
     | '/review'
     | '/settings'
+    | '/stats'
     | '/vocab'
     | '/story/$id'
   fileRoutesByTo: FileRoutesByTo
@@ -109,6 +119,7 @@ export interface FileRouteTypes {
     | '/library'
     | '/review'
     | '/settings'
+    | '/stats'
     | '/vocab'
     | '/story/$id'
   id:
@@ -119,6 +130,7 @@ export interface FileRouteTypes {
     | '/library'
     | '/review'
     | '/settings'
+    | '/stats'
     | '/vocab'
     | '/story/$id'
   fileRoutesById: FileRoutesById
@@ -130,6 +142,7 @@ export interface RootRouteChildren {
   LibraryRoute: typeof LibraryRoute
   ReviewRoute: typeof ReviewRoute
   SettingsRoute: typeof SettingsRoute
+  StatsRoute: typeof StatsRoute
   VocabRoute: typeof VocabRoute
   StoryIdRoute: typeof StoryIdRoute
 }
@@ -141,6 +154,13 @@ declare module '@tanstack/react-router' {
       path: '/vocab'
       fullPath: '/vocab'
       preLoaderRoute: typeof VocabRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/stats': {
+      id: '/stats'
+      path: '/stats'
+      fullPath: '/stats'
+      preLoaderRoute: typeof StatsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings': {
@@ -202,6 +222,7 @@ const rootRouteChildren: RootRouteChildren = {
   LibraryRoute: LibraryRoute,
   ReviewRoute: ReviewRoute,
   SettingsRoute: SettingsRoute,
+  StatsRoute: StatsRoute,
   VocabRoute: VocabRoute,
   StoryIdRoute: StoryIdRoute,
 }
