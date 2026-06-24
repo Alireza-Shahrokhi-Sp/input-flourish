@@ -711,9 +711,27 @@ After creating `src/routes/stats.tsx`, run `npm run dev` once (or `npm run build
 
 ---
 
-## Suggested order of work
-1. **Improvement 1** (vocab fix + filters) — smallest, self-contained, fixes a real bug. Good warm-up.
-2. **Improvement 3** (stats) — additive, new files, low risk of breaking existing screens.
-3. **Improvement 2** (shadowing) — most complex; do last when familiar with the reader code.
+---
+
+## Status Tracker
+
+Updated: 2026-06-24
+
+| # | Improvement | Status | Notes |
+|---|-------------|--------|-------|
+| 1 | Vocab search bug fix + filters & sorting | **DONE** | Implemented 2026-06-24. See [CHANGES_VOCAB_SEARCH.md](../summaries/CHANGES_VOCAB_SEARCH.md). Bug fixed, filters/sort/count/empty-state all added. Type-checks and builds clean. Not yet click-tested in browser with live data. |
+| 2 | Real shadowing mode | **NOT STARTED** | Most complex. New files: `src/lib/speech.ts`, `src/components/ShadowingBar.tsx`. Edits `story.$id.tsx`. |
+| 3 | Review stats & streaks | **NOT STARTED** | Additive, low risk. New files: `src/lib/stats.ts`, `src/routes/stats.tsx`. Edit `AppHeader.tsx` for nav link. |
+
+### Suggested next order
+1. **Improvement 3** (stats) — additive, new files, low risk of breaking existing screens.
+2. **Improvement 2** (shadowing) — most complex; do last when familiar with the reader code.
 
 Commit each improvement separately with a clear message. Run `npm run lint && npm run build` after each.
+
+---
+
+## Additional completed work (outside this plan)
+
+### CEFR Lexicon replacement (2026-06-24)
+Replaced the `it_m3.xlsx`-derived CEFR lexicon (5,035 translator-corpus entries) with a scraped pedagogical lexicon from "Profilo della lingua italiana" (2,127 entries, A1–B2). Drop-in replacement — same flat JSON format, no code changes to `lexicon.ts` or `index.ts`. Tests updated. See [EXE_Sum.md](../summaries/EXE_Sum.md) and the `profilo-scraper/` directory at project root.
