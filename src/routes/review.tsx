@@ -17,6 +17,7 @@ type Card = {
   lemma: string;
   pos: string | null;
   translation: string | null;
+  notes: string | null;
   srs: {
     interval_days: number;
     ease: number;
@@ -43,7 +44,7 @@ function ReviewPage() {
     (async () => {
       const { data: vocab } = await supabase
         .from("vocab_items")
-        .select("id,lemma,pos,translation")
+        .select("id,lemma,pos,translation,notes")
         .eq("user_id", user.id);
       const { data: srs } = await supabase
         .from("srs_reviews")
@@ -118,9 +119,17 @@ function ReviewPage() {
           onClick={() => setRevealed(true)}
         >
           <p className="font-display text-5xl">{card.lemma}</p>
-          {card.pos && <p className="mt-2 text-xs uppercase text-muted-foreground">{card.pos}</p>}
+          <div className="mt-2 flex items-center gap-2 justify-center">
+            {card.pos && <span className="text-xs uppercase text-muted-foreground">{card.pos}</span>}
+            {card.lemma.includes(" ") && (
+              <span className="text-[10px] font-medium rounded-full bg-primary/10 text-primary px-1.5 py-0.5">espressione</span>
+            )}
+          </div>
           {revealed ? (
-            <p className="mt-6 text-lg">{card.translation ?? "—"}</p>
+            <div className="mt-6">
+              <p className="text-lg">{card.translation ?? "—"}</p>
+              {card.notes && <p className="mt-2 text-sm text-muted-foreground italic">{card.notes}</p>}
+            </div>
           ) : (
             <p className="mt-6 text-sm text-muted-foreground">Tocca per rivelare</p>
           )}

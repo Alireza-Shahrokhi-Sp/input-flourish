@@ -42,6 +42,7 @@ function VocabPage() {
   const [dueOnly, setDueOnly] = React.useState(false);
   const [sortBy, setSortBy] = React.useState<"recent" | "alpha" | "due">("recent");
   const [levelFilter, setLevelFilter] = React.useState<string>("all");
+  const [typeFilter, setTypeFilter] = React.useState<"all" | "words" | "expressions">("all");
 
   React.useEffect(() => {
     if (!loading && !user) nav({ to: "/auth" });
@@ -111,6 +112,8 @@ function VocabPage() {
       }
       if (statusFilter !== "all" && r.status !== statusFilter) return false;
       if (levelFilter !== "all" && r.cefr_level !== levelFilter) return false;
+      if (typeFilter === "expressions" && !r.lemma.includes(" ")) return false;
+      if (typeFilter === "words" && r.lemma.includes(" ")) return false;
       if (themeFilter !== "all" && r.theme_tag !== themeFilter) return false;
       if (dueOnly) {
         const isDue = !r.due_at || new Date(r.due_at).getTime() <= now;
@@ -131,7 +134,7 @@ function VocabPage() {
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     });
     return out;
-  }, [rows, q, statusFilter, levelFilter, themeFilter, dueOnly, sortBy]);
+  }, [rows, q, statusFilter, levelFilter, typeFilter, themeFilter, dueOnly, sortBy]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -171,6 +174,15 @@ function VocabPage() {
               <SelectItem value="A2">A2</SelectItem>
               <SelectItem value="B1">B1</SelectItem>
               <SelectItem value="B2">B2</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v as typeof typeFilter)}>
+            <SelectTrigger className="h-8 w-[130px] text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tutto</SelectItem>
+              <SelectItem value="words">Solo parole</SelectItem>
+              <SelectItem value="expressions">Solo espressioni</SelectItem>
             </SelectContent>
           </Select>
 
