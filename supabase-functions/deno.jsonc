@@ -1,0 +1,20 @@
+{
+  // Deno config for the Supabase Edge Functions in this folder.
+  // These functions run on Supabase's Deno runtime, NOT in the Vite app —
+  // they are intentionally outside the project tsconfig. Use `deno check` here
+  // to type-check them locally before deploying.
+  "tasks": {
+    "check": "deno check generate-story/index.ts",
+    "check:all": "deno check **/*.ts"
+  },
+  "lint": {
+    "rules": {
+      "tags": ["recommended"]
+    }
+  },
+  "fmt": {
+    "lineWidth": 100,
+    "semiColons": true,
+    "singleQuote": false
+  }
+}
