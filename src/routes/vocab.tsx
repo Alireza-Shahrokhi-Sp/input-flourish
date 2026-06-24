@@ -228,6 +228,9 @@ function VocabPage() {
                   <div className="flex items-baseline gap-2 flex-wrap">
                     <span className="font-display text-xl">{r.lemma}</span>
                     {r.pos && <span className="text-xs uppercase text-muted-foreground">{r.pos}</span>}
+                    {r.lemma.includes(" ") && (
+                      <span className="text-[10px] font-medium rounded-full bg-grammar/10 text-grammar px-1.5 py-0.5">espressione</span>
+                    )}
                     {r.cefr_level && <span className="text-[10px] font-medium rounded-full bg-primary/10 text-primary px-1.5 py-0.5">{r.cefr_level}</span>}
                     {due && <span className="text-xs text-stretch font-medium">da ripassare</span>}
                     <button
@@ -238,6 +241,7 @@ function VocabPage() {
                     </button>
                   </div>
                   {r.translation && <p className="text-sm text-muted-foreground">{r.translation}</p>}
+                  {r.notes && <p className="text-xs text-muted-foreground italic mt-0.5">{r.notes}</p>}
                   <Input
                     className="mt-2 h-7 text-xs max-w-[220px]"
                     placeholder="tema (es. cucina)"

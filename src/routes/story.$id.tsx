@@ -10,6 +10,7 @@ import {
 import { Play, Pause, Plus, Check } from "lucide-react";
 import { toast } from "sonner";
 import { lemmaLevel } from "@/lib/cefr";
+import { PhraseSelectionPopover } from "@/components/PhraseSelectionPopover";
 
 export const Route = createFileRoute("/story/$id")({
   component: StoryPage,
@@ -59,6 +60,7 @@ function StoryPage() {
   const [targetIdByLemma, setTargetIdByLemma] = React.useState<Map<string, string>>(new Map());
   const [playing, setPlaying] = React.useState(false);
   const [continuing, setContinuing] = React.useState(false);
+  const articleRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
     if (!loading && !user) nav({ to: "/auth" });
@@ -226,13 +228,23 @@ function StoryPage() {
           </Button>
         </div>
 
-        <article className="mt-8 font-body text-lg leading-relaxed text-ink">
-          {tokenized ? (
-            renderParagraphs(ann.tokens, groupByToken, targetLemmas, targetIdByLemma, savedLemmas, saveVocab, bumpEaseHarder)
-          ) : (
-            renderPlainParagraphs(story.body)
-          )}
-        </article>
+        <div className="relative" ref={articleRef}>
+          <article className="mt-8 font-body text-lg leading-relaxed text-ink">
+            {tokenized ? (
+              renderParagraphs(ann.tokens, groupByToken, targetLemmas, targetIdByLemma, savedLemmas, saveVocab, bumpEaseHarder)
+            ) : (
+              renderPlainParagraphs(story.body)
+            )}
+          </article>
+          <PhraseSelectionPopover
+            containerRef={articleRef}
+            storyId={id}
+            storyLevel={story.level}
+            storyThemeTag={story.theme_tag}
+            savedLemmas={savedLemmas}
+            onSaved={(lemma) => setSavedLemmas(new Set([...savedLemmas, lemma]))}
+          />
+        </div>
 
 
         {/* Grammar section */}

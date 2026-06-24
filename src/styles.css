@@ -190,6 +190,14 @@
   font-weight: 600;
 }
 
+/* Phrase selection popover: floats above the selected text span. */
+.phrase-popover {
+  position: absolute;
+  transform: translate(-50%, -100%) translateY(-8px);
+  z-index: 50;
+  pointer-events: auto;
+}
+
 /* Dialogue formatting: clear separation between speaker turns,
    with subtle left border + tinted color per speaker. Easy on the eyes. */
 .dialogue-line {

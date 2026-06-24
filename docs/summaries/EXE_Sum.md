@@ -1,5 +1,49 @@
 # Executive Summary
 
+## 2026-06-24 — Phrase/Expression Saving Feature
+
+**What:** Added the ability to select multi-word expressions (idioms, phrasal verbs, collocations) from stories and save them to the vocabulary with LLM-generated analysis.
+
+**Why:** The vocab system only supported saving single tokens. Language learners need to capture multi-word expressions like "in bocca al lupo", "farcela", "darsi da fare" as whole units, with their meaning and structural explanation.
+
+### Components
+
+1. **`explain-phrase` Edge Function** (`supabase-functions/explain-phrase/index.ts`)
+   - Accepts a phrase + surrounding sentence context
+   - Calls Gemini to analyze: returns lemma form, POS category (locuzione, verbo pronominale, espressione idiomatica, collocazione, etc.), English meaning, and a structural note explaining why/how the expression works
+   - Validates that at least 2 words are selected
+   - Returns null-result with user-friendly error if selection isn't a recognizable expression
+   - Same auth pattern and Gemini retry logic as existing Edge Functions
+
+2. **`PhraseSelectionPopover` component** (`src/components/PhraseSelectionPopover.tsx`)
+   - Listens for text selection (mouseup) inside the story article
+   - Only triggers when 2+ words are selected
+   - Shows a floating "Analizza espressione" button above the selection
+   - On click, calls the Edge Function, then shows the analysis result card
+   - User can save to vocab with one click — stored with `pos` (e.g. "locuzione"), `translation` (meaning), and `notes` (structural explanation)
+   - CEFR level assigned via lexicon lookup, falling back to story level
+   - Dismisses on click outside
+
+3. **Story page integration** (`src/routes/story.$id.tsx`)
+   - Wrapped article in a ref-bearing `<div>` for the selection listener
+   - PhraseSelectionPopover rendered inside that container
+   - Works for both tokenized and plain-text renderers
+
+4. **Vocab page enhancements** (`src/routes/vocab.tsx`)
+   - Multi-word lemmas now show an "espressione" badge (olive green) to distinguish them from single words
+   - The `notes` field is now rendered below the translation (shows the structural explanation from Gemini)
+
+5. **CSS** (`src/styles.css`)
+   - Added `.phrase-popover` positioning class for the floating popover
+
+### Deploy notes
+
+- Deploy the new `explain-phrase` Edge Function: `supabase functions deploy explain-phrase`
+- No DB schema changes needed — phrases use existing `vocab_items` columns (`lemma`, `pos`, `translation`, `notes`)
+- Build passes clean
+
+---
+
 ## 2026-06-24 — Profilo della lingua italiana CEFR Lexicon Scraper + Integration
 
 **What:** Created a standalone Python scraper (`scripts/`) that extracts the complete A1–B2 vocabulary lists from the Università per Stranieri di Perugia's "Profilo della lingua italiana" website and outputs a structured JSON lexicon. Then wired it into the density verifier as a drop-in replacement for the old `it_m3.xlsx`-derived lexicon.
