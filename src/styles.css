@@ -174,6 +174,41 @@
   background: color-mix(in oklab, var(--color-stretch) 10%, transparent);
 }
 
+/* Expression marks: dashed underline in primary color for multi-word expressions
+   (idioms, phrasal verbs, collocations) detected by the LLM. */
+.expr-mark {
+  cursor: pointer;
+}
+.expr-mark.expr-only {
+  text-decoration: underline dashed var(--color-primary);
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 4px;
+}
+.expr-mark.expr-start,
+.expr-mark.expr-middle,
+.expr-mark.expr-end {
+  border-bottom: 2px dashed var(--color-primary);
+  padding-bottom: 1px;
+  background: color-mix(in oklab, var(--color-primary) 6%, transparent);
+}
+.expr-mark.expr-start {
+  border-top-left-radius: 3px;
+  border-bottom-left-radius: 3px;
+  padding-left: 2px;
+}
+.expr-mark.expr-end {
+  border-top-right-radius: 3px;
+  border-bottom-right-radius: 3px;
+  padding-right: 2px;
+}
+
+/* Sentence highlighting during shadowing playback. */
+.sentence-active {
+  background: color-mix(in oklab, var(--color-primary) 12%, transparent);
+  border-radius: 2px;
+  transition: background-color 200ms;
+}
+
 .word-tok {
   cursor: pointer;
   transition: background-color 120ms;
@@ -188,14 +223,6 @@
   border-radius: 2px;
   padding: 0 2px;
   font-weight: 600;
-}
-
-/* Phrase selection popover: floats above the selected text span. */
-.phrase-popover {
-  position: absolute;
-  transform: translate(-50%, -100%) translateY(-8px);
-  z-index: 50;
-  pointer-events: auto;
 }
 
 /* Dialogue formatting: clear separation between speaker turns,

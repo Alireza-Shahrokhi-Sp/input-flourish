@@ -720,14 +720,10 @@ Updated: 2026-06-24
 | # | Improvement | Status | Notes |
 |---|-------------|--------|-------|
 | 1 | Vocab search bug fix + filters & sorting | **DONE** | Implemented 2026-06-24. See [CHANGES_VOCAB_SEARCH.md](../summaries/CHANGES_VOCAB_SEARCH.md). Bug fixed, filters/sort/count/empty-state all added. Type-checks and builds clean. Not yet click-tested in browser with live data. |
-| 2 | Real shadowing mode | **NOT STARTED** | Most complex. New files: `src/lib/speech.ts`, `src/components/ShadowingBar.tsx`. Edits `story.$id.tsx`. |
+| 2 | Real shadowing mode | **DONE** | Implemented 2026-06-24. New files: `src/lib/speech.ts`, `src/components/ShadowingBar.tsx`. Also added LLM-detected expressions to generation pipeline. |
 | 3 | Review stats & streaks | **DONE** | Implemented 2026-06-24. New files: `src/lib/stats.ts`, `src/routes/stats.tsx`. Nav link added to `AppHeader.tsx`. Type-checks and builds clean. |
 
-### Suggested next order
-
-1. **Improvement 2** (shadowing) — the last remaining item; most complex.
-
-Commit each improvement separately with a clear message. Run `npm run lint && npm run build` after each.
+All three improvements are now complete.
 
 ---
 

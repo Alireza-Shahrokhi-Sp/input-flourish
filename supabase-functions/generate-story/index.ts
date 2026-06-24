@@ -139,6 +139,15 @@ OUTPUT (JSON)
       "is_stretch": true | false,
       "token_indices": [12, 13]
     }
+  ],
+  "expressions": [
+    {
+      "token_indices": [5, 6, 7, 8],
+      "lemma": "forma di citazione (es. 'farcela', 'in bocca al lupo', 'darsi da fare')",
+      "pos": "locuzione | verbo pronominale | espressione idiomatica | collocazione",
+      "meaning": "traduzione/significato in inglese, conciso",
+      "note": "spiegazione strutturale breve per uno studente (1-2 frasi in inglese)"
+    }
   ]
 }
 
@@ -159,7 +168,16 @@ ISTRUZIONI GRAMMATICA
 - "is_stretch": true SOLO per gli elementi sopra livello che hai introdotto.
 - "token_indices": IMPORTANTISSIMO — elenca TUTTI E SOLI i token che appartengono a UNA SINGOLA occorrenza della struttura, come UN GRUPPO UNICO. Se la stessa struttura ricorre più volte, crea VOCI SEPARATE in "grammar" (una per occorrenza), ognuna con il proprio gruppo di token_indices. NON mettere ogni parola come voce separata, e NON unire occorrenze diverse in un solo gruppo.
 - Per verbi pronominali / verbi + particelle clitiche separate (es. "ne ho parlato", "ci penso io", "se ne va", "gliel'ho detto"): includi NEL gruppo TUTTI i token coinvolti (clitico + verbo + ausiliare), anche se non sono adiacenti, così che lo studente veda chiaramente che funzionano insieme.
-- Per strutture multi-parola (passato prossimo "ho mangiato", congiuntivo composto, periodo ipotetico "se avessi … sarei …"): includi ausiliare + participio / entrambe le clausole nello STESSO gruppo.`;
+- Per strutture multi-parola (passato prossimo "ho mangiato", congiuntivo composto, periodo ipotetico "se avessi … sarei …"): includi ausiliare + participio / entrambe le clausole nello STESSO gruppo.
+
+ISTRUZIONI ESPRESSIONI
+- "expressions" contiene espressioni multi-parola che uno studente dovrebbe imparare come blocco unico.
+- Includi SOLO: verbi pronominali (farcela, andarsene, prendersela, cavarsela), locuzioni fisse (in bocca al lupo, a un tratto, per fortuna, in realtà), espressioni idiomatiche, collocazioni che non si traducono letteralmente.
+- NON includere: singole parole, coppie verbo+articolo comuni (fare il, prendere la), tempi composti normali (ho mangiato, sono andato) — quelli vanno in "grammar".
+- "token_indices": gli indici ESATTI dei token nel body che formano l'espressione (come per grammar). Anche se i token non sono tutti adiacenti (es. "ce la faccio" con altri token in mezzo), elenca tutti quelli coinvolti.
+- "lemma": forma di citazione all'infinito (verbi pronominali con particelle: "andarsene" non "andare"; "farcela" non "fare").
+- "note": spiega la STRUTTURA (es. "ce + la + fare: pronominal verb where 'ce' replaces 'ci' before 'la'; means to manage/succeed"). Non ripetere il significato.
+- Punta a 2-5 espressioni per storia (dipende dal livello e contenuto). A1 potrebbe averne 1-2, B2 potrebbe averne 4-5. Se non ce ne sono nel testo, lascia l'array vuoto.`;
 
     // --- Generation + deterministic density verification loop ---
     // CLAUDE.md mandates a deterministic check on the LLM output (LLMs cannot
@@ -273,6 +291,7 @@ ISTRUZIONI GRAMMATICA
       user_id: user.id,
       tokens: parsed.tokens ?? [],
       grammar: parsed.grammar ?? [],
+      expressions: parsed.expressions ?? [],
     });
 
     return json({
@@ -343,7 +362,7 @@ type Token = {
 };
 type ParsedStory = {
   title: string; summary?: string; topic?: string; body: string;
-  tokens?: Token[]; grammar?: unknown[];
+  tokens?: Token[]; grammar?: unknown[]; expressions?: unknown[];
 };
 
 type DensityResult = {

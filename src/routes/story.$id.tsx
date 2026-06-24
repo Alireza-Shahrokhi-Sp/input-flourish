@@ -7,10 +7,11 @@ import { Button } from "@/components/ui/button";
 import {
   Popover, PopoverContent, PopoverTrigger,
 } from "@/components/ui/popover";
-import { Play, Pause, Plus, Check } from "lucide-react";
+import { Plus, Check, BookOpen } from "lucide-react";
 import { toast } from "sonner";
 import { lemmaLevel } from "@/lib/cefr";
-import { PhraseSelectionPopover } from "@/components/PhraseSelectionPopover";
+import { segmentSentences } from "@/lib/speech";
+import { ShadowingBar } from "@/components/ShadowingBar";
 
 export const Route = createFileRoute("/story/$id")({
   component: StoryPage,
@@ -47,7 +48,14 @@ type Story = {
   target_word_ids: string[] | null;
   theme_tag: string | null;
 };
-type Annotations = { tokens: Token[]; grammar: GrammarEntry[] };
+type ExpressionEntry = {
+  token_indices: number[];
+  lemma: string;
+  pos: string;
+  meaning: string | null;
+  note: string | null;
+};
+type Annotations = { tokens: Token[]; grammar: GrammarEntry[]; expressions: ExpressionEntry[] };
 
 function StoryPage() {
   const { id } = Route.useParams();
@@ -58,9 +66,12 @@ function StoryPage() {
   const [savedLemmas, setSavedLemmas] = React.useState<Set<string>>(new Set());
   const [targetLemmas, setTargetLemmas] = React.useState<Set<string>>(new Set());
   const [targetIdByLemma, setTargetIdByLemma] = React.useState<Map<string, string>>(new Map());
-  const [playing, setPlaying] = React.useState(false);
   const [continuing, setContinuing] = React.useState(false);
-  const articleRef = React.useRef<HTMLDivElement>(null);
+  const [activeSentence, setActiveSentence] = React.useState<number | null>(null);
+  const sentences = React.useMemo(
+    () => (story ? segmentSentences(story.body) : []),
+    [story],
+  );
 
   React.useEffect(() => {
     if (!loading && !user) nav({ to: "/auth" });
@@ -71,10 +82,10 @@ function StoryPage() {
     (async () => {
       const [{ data: s }, { data: a }] = await Promise.all([
         supabase.from("stories").select("*").eq("id", id).maybeSingle(),
-        supabase.from("story_annotations").select("tokens,grammar").eq("story_id", id).maybeSingle(),
+        supabase.from("story_annotations").select("tokens,grammar,expressions").eq("story_id", id).maybeSingle(),
       ]);
       setStory(s as Story | null);
-      setAnn((a as Annotations | null) ?? { tokens: [], grammar: [] });
+      setAnn((a as Annotations | null) ?? { tokens: [], grammar: [], expressions: [] });
       const { data: vocab } = await supabase
         .from("vocab_items")
         .select("id,lemma")
@@ -127,26 +138,53 @@ function StoryPage() {
     return m;
   }, [ann]);
 
+  type ExprInfo = { expr: ExpressionEntry; pos: "start" | "middle" | "end" | "only" };
+  const exprByToken = React.useMemo(() => {
+    const m = new Map<number, ExprInfo>();
+    if (!ann) return m;
+    for (const expr of ann.expressions ?? []) {
+      const idxs = [...(expr.token_indices ?? [])].sort((a, b) => a - b);
+      if (!idxs.length) continue;
+      for (let k = 0; k < idxs.length; k++) {
+        const pos: ExprInfo["pos"] =
+          idxs.length === 1 ? "only" : k === 0 ? "start" : k === idxs.length - 1 ? "end" : "middle";
+        m.set(idxs[k], { expr, pos });
+      }
+    }
+    return m;
+  }, [ann]);
 
+  React.useEffect(() => {
+    if (activeSentence == null) return;
+    const el = document.querySelector(".sentence-active");
+    el?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [activeSentence]);
 
-
-  const speak = () => {
-    if (!story) return;
-    if (playing) {
-      window.speechSynthesis.cancel();
-      setPlaying(false);
+  const saveExpression = async (expr: ExpressionEntry) => {
+    if (!user || !story) return;
+    const lemma = expr.lemma.toLowerCase();
+    if (savedLemmas.has(lemma)) {
+      toast("Espressione già salvata");
       return;
     }
-    const u = new SpeechSynthesisUtterance(story.body);
-    u.lang = "it-IT";
-    u.rate = 0.95;
-    const voices = window.speechSynthesis.getVoices();
-    const it = voices.find((v) => v.lang.startsWith("it"));
-    if (it) u.voice = it;
-    u.onend = () => setPlaying(false);
-    u.onerror = () => setPlaying(false);
-    window.speechSynthesis.speak(u);
-    setPlaying(true);
+    const { error } = await supabase.from("vocab_items").insert({
+      user_id: user.id,
+      lemma,
+      pos: expr.pos,
+      translation: expr.meaning,
+      notes: expr.note,
+      first_story_id: id,
+      cefr_level: lemmaLevel(lemma) ?? story.level ?? null,
+      theme_tag: story.theme_tag ?? null,
+    });
+    if (error) {
+      if (!error.message.includes("duplicate")) {
+        toast.error(error.message);
+        return;
+      }
+    }
+    setSavedLemmas(new Set([...savedLemmas, lemma]));
+    toast.success(`Salvato: ${expr.lemma}`);
   };
 
   const bumpEaseHarder = async (vocabId?: string) => {
@@ -222,30 +260,53 @@ function StoryPage() {
             </p>
             <h1 className="font-display text-4xl mt-1">{story.title}</h1>
           </div>
-          <Button variant="outline" size="sm" onClick={speak} className="gap-2">
-            {playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-            {playing ? "Pausa" : "Ascolta"}
-          </Button>
         </div>
 
-        <div className="relative" ref={articleRef}>
-          <article className="mt-8 font-body text-lg leading-relaxed text-ink">
-            {tokenized ? (
-              renderParagraphs(ann.tokens, groupByToken, targetLemmas, targetIdByLemma, savedLemmas, saveVocab, bumpEaseHarder)
-            ) : (
-              renderPlainParagraphs(story.body)
-            )}
-          </article>
-          <PhraseSelectionPopover
-            containerRef={articleRef}
-            storyId={id}
-            storyLevel={story.level}
-            storyThemeTag={story.theme_tag}
-            savedLemmas={savedLemmas}
-            onSaved={(lemma) => setSavedLemmas(new Set([...savedLemmas, lemma]))}
-          />
-        </div>
+        <ShadowingBar sentences={sentences} onActiveSentence={setActiveSentence} />
 
+        <article className="mt-8 font-body text-lg leading-relaxed text-ink">
+          {tokenized ? (
+            renderParagraphs(ann.tokens, groupByToken, exprByToken, targetLemmas, targetIdByLemma, savedLemmas, saveVocab, saveExpression, bumpEaseHarder, activeSentence, sentences)
+          ) : (
+            renderPlainParagraphs(story.body, activeSentence, sentences)
+          )}
+        </article>
+
+        {/* Expressions section */}
+        {(ann.expressions ?? []).length > 0 && (
+          <section className="mt-10 rounded-xl border border-primary/20 bg-primary/5 p-5">
+            <h2 className="font-display text-2xl flex items-center gap-2">
+              <BookOpen className="h-5 w-5 text-primary" /> Espressioni utili
+            </h2>
+            <div className="mt-4 space-y-3">
+              {(ann.expressions ?? []).map((expr, i) => (
+                <div key={i} className="flex items-start gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-baseline gap-2 flex-wrap">
+                      <span className="font-display text-lg">{expr.lemma}</span>
+                      <span className="text-[10px] uppercase tracking-wide text-muted-foreground">{expr.pos}</span>
+                    </div>
+                    {expr.meaning && <p className="text-sm">{expr.meaning}</p>}
+                    {expr.note && <p className="text-xs text-muted-foreground italic mt-0.5">{expr.note}</p>}
+                  </div>
+                  <Button
+                    size="sm"
+                    variant={savedLemmas.has(expr.lemma.toLowerCase()) ? "secondary" : "default"}
+                    className="gap-1 shrink-0"
+                    onClick={() => saveExpression(expr)}
+                    disabled={savedLemmas.has(expr.lemma.toLowerCase())}
+                  >
+                    {savedLemmas.has(expr.lemma.toLowerCase()) ? (
+                      <><Check className="h-3 w-3" /> Salvato</>
+                    ) : (
+                      <><Plus className="h-3 w-3" /> Salva</>
+                    )}
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Grammar section */}
         {ann.grammar.length > 0 && (
@@ -322,23 +383,31 @@ function GrammarCard({ g, stretch }: { g: GrammarEntry; stretch?: boolean }) {
 }
 
 type GroupInfoLite = { g: GrammarEntry; gid: number; pos: "start" | "middle" | "end" | "only" };
+type ExprInfoLite = { expr: ExpressionEntry; pos: "start" | "middle" | "end" | "only" };
 
-function renderPlainParagraphs(body: string) {
+function renderPlainParagraphs(
+  body: string,
+  activeSentence: number | null,
+  sentences: { text: string; start: number; end: number }[],
+) {
+  const activeTxt = activeSentence != null ? sentences[activeSentence]?.text : null;
   const paras = splitParagraphs(body);
   return (
     <div className="space-y-4">
-      {paras.map((p, i) => (
-        <p
-          key={i}
-          className={
-            p.kind === "dialogue"
-              ? `dialogue-line speaker-${p.speaker} whitespace-pre-wrap`
-              : "whitespace-pre-wrap"
-          }
-        >
-          {p.text}
-        </p>
-      ))}
+      {paras.map((p, i) => {
+        const isActive = activeTxt != null && p.text.includes(activeTxt);
+        return (
+          <p
+            key={i}
+            className={[
+              p.kind === "dialogue" ? `dialogue-line speaker-${p.speaker} whitespace-pre-wrap` : "whitespace-pre-wrap",
+              isActive ? "sentence-active" : "",
+            ].join(" ")}
+          >
+            {p.text}
+          </p>
+        );
+      })}
     </div>
   );
 }
@@ -346,11 +415,15 @@ function renderPlainParagraphs(body: string) {
 function renderParagraphs(
   tokens: Token[],
   groupByToken: Map<number, GroupInfoLite>,
+  exprByToken: Map<number, ExprInfoLite>,
   targetLemmas: Set<string>,
   targetIdByLemma: Map<string, string>,
   savedLemmas: Set<string>,
   saveVocab: (t: Token) => void,
+  saveExpression: (e: ExpressionEntry) => void,
   bumpEaseHarder: (id?: string) => void,
+  activeSentence: number | null,
+  sentences: { text: string; start: number; end: number }[],
 ) {
   // Group tokens into paragraphs by newline tokens.
   const paragraphs: Token[][] = [];
@@ -374,7 +447,8 @@ function renderParagraphs(
   }
   if (cur.length) paragraphs.push(cur);
 
-  // Detect dialogue + assign rotating speaker color (max 3 distinct).
+  const activeTxt = activeSentence != null ? sentences[activeSentence]?.text : null;
+
   let speakerIdx = 0;
   let lastWasDialogue = false;
   return (
@@ -393,23 +467,28 @@ function renderParagraphs(
           } else {
             lastWasDialogue = false;
           }
+          const paraText = paraTokens.map((t) => t.surface).join("");
+          const isActivePara = activeTxt != null && paraText.includes(activeTxt);
           return (
             <p
               key={pIdx}
-              className={
-                isDialogue
-                  ? `dialogue-line speaker-${speaker}`
-                  : ""
-              }
+              className={[
+                isDialogue ? `dialogue-line speaker-${speaker}` : "",
+                isActivePara ? "sentence-active" : "",
+              ].join(" ")}
             >
               {paraTokens.map((t, k) => {
                 const gi = groupByToken.get(t.i);
+                const ei = exprByToken.get(t.i);
                 const isWord = /\p{L}/u.test(t.surface);
                 if (!isWord) return <span key={`${pIdx}-${k}`}>{t.surface}</span>;
                 const lemmaKey = (t.lemma ?? t.surface).toLowerCase();
                 const isTarget = targetLemmas.has(lemmaKey);
                 const grammarClass = gi
                   ? `grammar-mark grammar-${gi.pos} ${gi.g.is_stretch ? "stretch" : ""}`
+                  : "";
+                const exprClass = ei
+                  ? `expr-mark expr-${ei.pos}`
                   : "";
                 return (
                   <Popover
@@ -420,7 +499,7 @@ function renderParagraphs(
                   >
                     <PopoverTrigger asChild>
                       <span
-                        className={`word-tok ${isTarget ? "target-word" : ""} ${grammarClass}`}
+                        className={`word-tok ${isTarget ? "target-word" : ""} ${grammarClass} ${exprClass}`}
                       >
                         {t.surface}
                       </span>
@@ -452,6 +531,30 @@ function renderParagraphs(
                                 Struttura di {gi.g.token_indices.length} parole — sottolineata insieme
                               </p>
                             )}
+                          </div>
+                        )}
+                        {ei && (
+                          <div className="mt-2 rounded-md p-2 text-xs bg-primary/10 border border-primary/30">
+                            <div className="flex items-baseline gap-1">
+                              <BookOpen className="h-3 w-3 text-primary shrink-0" />
+                              <p className="font-semibold">{ei.expr.lemma}</p>
+                              <span className="text-[9px] uppercase text-muted-foreground ml-auto">{ei.expr.pos}</span>
+                            </div>
+                            {ei.expr.meaning && <p className="mt-1">{ei.expr.meaning}</p>}
+                            {ei.expr.note && <p className="mt-1 italic text-muted-foreground">{ei.expr.note}</p>}
+                            <Button
+                              size="sm"
+                              variant={savedLemmas.has(ei.expr.lemma.toLowerCase()) ? "secondary" : "default"}
+                              className="w-full gap-1 mt-2"
+                              onClick={(e) => { e.stopPropagation(); saveExpression(ei.expr); }}
+                              disabled={savedLemmas.has(ei.expr.lemma.toLowerCase())}
+                            >
+                              {savedLemmas.has(ei.expr.lemma.toLowerCase()) ? (
+                                <><Check className="h-3 w-3" /> Salvato</>
+                              ) : (
+                                <><BookOpen className="h-3 w-3" /> Salva espressione</>
+                              )}
+                            </Button>
                           </div>
                         )}
                         {t.lemma && (

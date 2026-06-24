@@ -83,10 +83,12 @@ OUTPUT (stesso schema della prima generazione):
   "topic": "tema in 2-4 parole",
   "body": "Il testo completo del capitolo.",
   "tokens": [{ "i": 0, "surface": "...", "lemma": "...", "pos": "...", "translation": "..." }],
-  "grammar": [{ "name": "...", "explanation": "...", "example_sentence": "...", "extra_examples": ["..."], "complexity": "simple|complex", "is_stretch": true|false, "token_indices": [0] }]
+  "grammar": [{ "name": "...", "explanation": "...", "example_sentence": "...", "extra_examples": ["..."], "complexity": "simple|complex", "is_stretch": true|false, "token_indices": [0] }],
+  "expressions": [{ "token_indices": [5, 6, 7], "lemma": "forma di citazione", "pos": "locuzione|verbo pronominale|espressione idiomatica|collocazione", "meaning": "English meaning", "note": "structural explanation" }]
 }
 
-Tokens coprono l'intero body in ordine (spazi e punteggiatura inclusi). Grammar: complex solo per strutture non ovvie; is_stretch solo per gli elementi sopra livello introdotti.`;
+Tokens coprono l'intero body in ordine (spazi e punteggiatura inclusi). Grammar: complex solo per strutture non ovvie; is_stretch solo per gli elementi sopra livello introdotti.
+Expressions: includi SOLO espressioni multi-parola significative (verbi pronominali, locuzioni fisse, idiomi, collocazioni non letterali). 2-5 per storia. token_indices puntano ai token coinvolti.`;
 
     const resp = await callGeminiWithRetry(apiKey, sys, userPrompt);
     if (!resp.ok) {
@@ -121,6 +123,7 @@ Tokens coprono l'intero body in ordine (spazi e punteggiatura inclusi). Grammar:
     await supabase.from("story_annotations").insert({
       story_id: row.id, user_id: user.id,
       tokens: parsed.tokens ?? [], grammar: parsed.grammar ?? [],
+      expressions: parsed.expressions ?? [],
     });
     return json({ story_id: row.id });
   } catch (e) {

@@ -1,8 +1,58 @@
 # Executive Summary
 
-## 2026-06-24 — Phrase/Expression Saving Feature
+## 2026-06-24 — Real Shadowing Mode + LLM-Detected Expressions
 
-**What:** Added the ability to select multi-word expressions (idioms, phrasal verbs, collocations) from stories and save them to the vocabulary with LLM-generated analysis.
+**What:** Two major features: (1) sentence-by-sentence shadowing player replacing the broken whole-body TTS, (2) LLM-detected multi-word expressions in stories with inline highlighting and one-click save.
+
+### Shadowing Mode (Improvement 2)
+
+Replaced the old `speak()` function (which dumped the entire story body into one `SpeechSynthesisUtterance`) with a proper sentence-by-sentence shadowing player.
+
+**New files:**
+- `src/lib/speech.ts` — Voice loading (fixes Chromium `getVoices()` race), Italian voice picker, sentence segmentation with char offsets
+- `src/components/ShadowingBar.tsx` — Sticky toolbar: Play/Pause, Prev/Next sentence, Repeat toggle (loop current sentence), Speed selector (0.6x–1.0x), sentence counter
+
+**Story page changes:**
+- ShadowingBar renders above the article
+- Active sentence highlighted with `.sentence-active` CSS (paragraph-level for both renderers)
+- Auto-scroll to active sentence during playback
+- Audio stops on route navigation (cleanup in useEffect)
+
+**Key implementation detail:** Uses refs (`idxRef`, `playingRef`, `loopRef`, `rateRef`) because `utterance.onend` captures a closure at speak time — without refs it reads stale state, breaking chained playback.
+
+### LLM-Detected Expressions
+
+Replaced the previous free-text-selection approach (PhraseSelectionPopover) with LLM-detected expressions in the generation pipeline.
+
+**Why the change:** Free text selection was chaotic — users could select random word fragments. Better to have the LLM identify meaningful expressions during generation.
+
+**Generation prompt changes:**
+- `generate-story` and `continue-story` prompts now request an `"expressions"` array in the JSON output
+- Each expression has: `token_indices`, `lemma` (citation form), `pos` (locuzione/verbo pronominale/espressione idiomatica/collocazione), `meaning`, `note` (structural explanation)
+- Stored in `story_annotations.expressions` (new `jsonb` column)
+
+**Story reader changes:**
+- Expression tokens highlighted with dashed primary-color underline (`.expr-mark` CSS)
+- Token popover shows expression info (lemma, POS, meaning, structural note) with save button
+- Dedicated "Espressioni utili" section below the article with all expressions and save buttons
+- Vocab page shows "espressione" badge and structural notes for multi-word entries
+
+### DB migration required
+
+```sql
+ALTER TABLE story_annotations ADD COLUMN expressions jsonb DEFAULT '[]'::jsonb;
+```
+
+### Deploy notes
+- Edge Functions deployed: `generate-story`, `continue-story`, `explain-phrase`
+- The `explain-phrase` function is no longer used by the frontend (was for the removed PhraseSelectionPopover) but remains deployed — can be removed later or repurposed
+- Run the migration above before generating new stories
+
+---
+
+## 2026-06-24 — Phrase/Expression Saving Feature (superseded)
+
+**What:** ~~Added the ability to select multi-word expressions (idioms, phrasal verbs, collocations) from stories and save them to the vocabulary with LLM-generated analysis.~~ **Superseded** by the LLM-detected expressions approach above. PhraseSelectionPopover removed.
 
 **Why:** The vocab system only supported saving single tokens. Language learners need to capture multi-word expressions like "in bocca al lupo", "farcela", "darsi da fare" as whole units, with their meaning and structural explanation.
 
