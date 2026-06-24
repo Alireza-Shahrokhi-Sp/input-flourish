@@ -5,6 +5,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { AppHeader } from "@/components/AppHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import { Toggle } from "@/components/ui/toggle";
 import { Trash2, Brain } from "lucide-react";
 import { toast } from "sonner";
 
@@ -33,6 +37,10 @@ function VocabPage() {
   const [rows, setRows] = React.useState<Row[] | null>(null);
   const [q, setQ] = React.useState("");
   const [dueCount, setDueCount] = React.useState(0);
+  const [statusFilter, setStatusFilter] = React.useState<"all" | "learning" | "mastering">("all");
+  const [themeFilter, setThemeFilter] = React.useState<string>("all");
+  const [dueOnly, setDueOnly] = React.useState(false);
+  const [sortBy, setSortBy] = React.useState<"recent" | "alpha" | "due">("recent");
 
   React.useEffect(() => {
     if (!loading && !user) nav({ to: "/auth" });
@@ -79,9 +87,49 @@ function VocabPage() {
     setRows((rs) => rs?.map((r) => r.id === id ? { ...r, status: next } : r) ?? null);
   };
 
-  const filtered = rows?.filter(
-    (r) => !q || r.lemma.includes(q.toLowerCase()) || r.translation?.toLowerCase().includes(q.toLowerCase()),
-  );
+  // Distinct themes present in the saved vocab, for the theme filter dropdown.
+  const themes = React.useMemo(() => {
+    const set = new Set<string>();
+    for (const r of rows ?? []) if (r.theme_tag) set.add(r.theme_tag);
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "it"));
+  }, [rows]);
+
+  const filtered = React.useMemo(() => {
+    const query = q.trim().toLowerCase();
+    const now = Date.now();
+    const out = (rows ?? []).filter((r) => {
+      if (query) {
+        // Bug fix: lowercase BOTH sides. Lemmas saved from stories are already
+        // lowercased, but Anki-imported ones may not be — previously they were
+        // silently excluded from search results.
+        const hit =
+          r.lemma.toLowerCase().includes(query) ||
+          (r.translation?.toLowerCase().includes(query) ?? false) ||
+          (r.theme_tag?.toLowerCase().includes(query) ?? false);
+        if (!hit) return false;
+      }
+      if (statusFilter !== "all" && r.status !== statusFilter) return false;
+      if (themeFilter !== "all" && r.theme_tag !== themeFilter) return false;
+      if (dueOnly) {
+        const isDue = !r.due_at || new Date(r.due_at).getTime() <= now;
+        if (!isDue) return false;
+      }
+      return true;
+    });
+    out.sort((a, b) => {
+      if (sortBy === "alpha") return a.lemma.localeCompare(b.lemma, "it");
+      if (sortBy === "due") {
+        // Soonest / most overdue first. Never-reviewed (no due_at) treated as
+        // due now (time 0) so they surface near the top, matching review logic.
+        const da = a.due_at ? new Date(a.due_at).getTime() : 0;
+        const db = b.due_at ? new Date(b.due_at).getTime() : 0;
+        return da - db;
+      }
+      // recent (default): newest created first.
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
+    return out;
+  }, [rows, q, statusFilter, themeFilter, dueOnly, sortBy]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -98,15 +146,63 @@ function VocabPage() {
 
         <Input
           className="mt-6"
-          placeholder="Cerca parola o traduzione…"
+          placeholder="Cerca parola, traduzione o tema…"
           value={q}
           onChange={(e) => setQ(e.target.value)}
         />
+
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}>
+            <SelectTrigger className="h-8 w-[150px] text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tutti gli stati</SelectItem>
+              <SelectItem value="learning">Learning</SelectItem>
+              <SelectItem value="mastering">Mastering</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {themes.length > 0 && (
+            <Select value={themeFilter} onValueChange={setThemeFilter}>
+              <SelectTrigger className="h-8 w-[150px] text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tutti i temi</SelectItem>
+                {themes.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          )}
+
+          <Select value={sortBy} onValueChange={(v) => setSortBy(v as typeof sortBy)}>
+            <SelectTrigger className="h-8 w-[170px] text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="recent">Più recenti</SelectItem>
+              <SelectItem value="alpha">Alfabetico</SelectItem>
+              <SelectItem value="due">Da ripassare prima</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Toggle
+            pressed={dueOnly}
+            onPressedChange={setDueOnly}
+            size="sm"
+            className="h-8 text-xs data-[state=on]:bg-stretch/15 data-[state=on]:text-stretch"
+          >
+            Solo da ripassare
+          </Toggle>
+
+          <span className="ml-auto text-xs text-muted-foreground">
+            {filtered?.length ?? 0} parole
+          </span>
+        </div>
 
         {rows === null && <p className="mt-8 text-muted-foreground">Caricamento…</p>}
         {rows?.length === 0 && (
           <p className="mt-8 text-muted-foreground">
             Nessuna parola salvata. Cliccale dalle storie per aggiungerle.
+          </p>
+        )}
+        {rows && rows.length > 0 && filtered.length === 0 && (
+          <p className="mt-8 text-muted-foreground">
+            Nessuna parola corrisponde ai filtri.
           </p>
         )}
 
