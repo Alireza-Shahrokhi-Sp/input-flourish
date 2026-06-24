@@ -4,6 +4,7 @@
 // - Anki ease is permille (2500 = 2.5). Clamped to >= 1.3.
 // - Duplicates by (user_id, lower(lemma)) are REPLACED with Anki's data.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { lemmaLevel } from "../_shared/lexicon.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -178,7 +179,7 @@ Deno.serve(async (req) => {
         translation,
         pos: iPos !== -1 ? (r[iPos]?.trim() || null) : null,
         notes: iNotes !== -1 ? (r[iNotes]?.trim() || null) : null,
-        cefr_level: iLevel !== -1 ? (r[iLevel]?.trim().toUpperCase() || null) : null,
+        cefr_level: iLevel !== -1 ? (r[iLevel]?.trim().toUpperCase() || null) : lemmaLevel(lemma),
         theme_tag,
         interval_days: ivlDays,
         ease,

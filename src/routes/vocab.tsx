@@ -41,6 +41,7 @@ function VocabPage() {
   const [themeFilter, setThemeFilter] = React.useState<string>("all");
   const [dueOnly, setDueOnly] = React.useState(false);
   const [sortBy, setSortBy] = React.useState<"recent" | "alpha" | "due">("recent");
+  const [levelFilter, setLevelFilter] = React.useState<string>("all");
 
   React.useEffect(() => {
     if (!loading && !user) nav({ to: "/auth" });
@@ -109,6 +110,7 @@ function VocabPage() {
         if (!hit) return false;
       }
       if (statusFilter !== "all" && r.status !== statusFilter) return false;
+      if (levelFilter !== "all" && r.cefr_level !== levelFilter) return false;
       if (themeFilter !== "all" && r.theme_tag !== themeFilter) return false;
       if (dueOnly) {
         const isDue = !r.due_at || new Date(r.due_at).getTime() <= now;
@@ -129,7 +131,7 @@ function VocabPage() {
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     });
     return out;
-  }, [rows, q, statusFilter, themeFilter, dueOnly, sortBy]);
+  }, [rows, q, statusFilter, levelFilter, themeFilter, dueOnly, sortBy]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -158,6 +160,17 @@ function VocabPage() {
               <SelectItem value="all">Tutti gli stati</SelectItem>
               <SelectItem value="learning">Learning</SelectItem>
               <SelectItem value="mastering">Mastering</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={levelFilter} onValueChange={setLevelFilter}>
+            <SelectTrigger className="h-8 w-[100px] text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tutti i livelli</SelectItem>
+              <SelectItem value="A1">A1</SelectItem>
+              <SelectItem value="A2">A2</SelectItem>
+              <SelectItem value="B1">B1</SelectItem>
+              <SelectItem value="B2">B2</SelectItem>
             </SelectContent>
           </Select>
 
@@ -215,6 +228,7 @@ function VocabPage() {
                   <div className="flex items-baseline gap-2 flex-wrap">
                     <span className="font-display text-xl">{r.lemma}</span>
                     {r.pos && <span className="text-xs uppercase text-muted-foreground">{r.pos}</span>}
+                    {r.cefr_level && <span className="text-[10px] font-medium rounded-full bg-primary/10 text-primary px-1.5 py-0.5">{r.cefr_level}</span>}
                     {due && <span className="text-xs text-stretch font-medium">da ripassare</span>}
                     <button
                       onClick={() => toggleStatus(r.id, r.status)}

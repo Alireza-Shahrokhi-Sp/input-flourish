@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/popover";
 import { Play, Pause, Plus, Check } from "lucide-react";
 import { toast } from "sonner";
+import { lemmaLevel } from "@/lib/cefr";
 
 export const Route = createFileRoute("/story/$id")({
   component: StoryPage,
@@ -181,7 +182,7 @@ function StoryPage() {
       translation: tok.translation,
       first_story_id: id,
       first_seen_sentence: tok.surface,
-      cefr_level: story?.level ?? null,
+      cefr_level: lemmaLevel(lemma) ?? story?.level ?? null,
       theme_tag: story?.theme_tag ?? null,
     });
     if (error) {
